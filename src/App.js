@@ -2,16 +2,17 @@ import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
 import Home from "./pages/Home";
+import ProductDetail from "./pages/ProductDetail";
 
 function App() {
   return (
     <Router>
-      <div className="min-h-screen flex flex-col bg-white text-black font-sans">
+      <div className="flex min-h-screen flex-col bg-white font-sans text-black">
         <Navbar />
         <main className="flex-grow">
           <Routes>
             <Route path="/" element={<Home />} />
-            {/* Thêm các Route khác vào đây sau (vd: /shop, /cart) */}
+            <Route path="/product/:id" element={<ProductDetail />} />
           </Routes>
         </main>
         <Footer />
