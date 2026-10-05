@@ -2,16 +2,29 @@ import apiClient from "./apiClient";
 
 export const authService = {
   login: async (email, password) => {
-    const response = await apiClient.post("/api/auth/login", { email, password });
+    const response = await apiClient.post("/auth/login", { email, password });
     return response.data;
   },
 
   register: async (firstName, lastName, email, password) => {
-    const response = await apiClient.post("/api/auth/register", {
+    const response = await apiClient.post("/auth/register", {
       firstName,
       lastName,
       email,
       password,
+    });
+    return response.data;
+  },
+
+  getMe: async () => {
+    const response = await apiClient.get("/auth/me");
+    return response.data;
+  },
+
+  changePassword: async (oldPassword, newPassword) => {
+    const response = await apiClient.post("/auth/change-password", {
+      oldPassword,
+      newPassword,
     });
     return response.data;
   },

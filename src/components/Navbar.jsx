@@ -1,7 +1,29 @@
+import { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import { ShoppingBag, Search, User } from "lucide-react";
+import { authService } from "../services/authService";
 
 const Navbar = () => {
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const dropdownRef = useRef(null);
+  const isAuthenticated = !!localStorage.getItem("token");
+
+  // Hàm xử lý click ra ngoài để đóng dropdown
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const handleLogout = () => {
+    setIsDropdownOpen(false);
+    authService.logout();
+  };
+
   return (
     <header className="sticky top-0 z-50 border-b border-white/20 bg-white/60 backdrop-blur-md">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4">
@@ -25,9 +47,42 @@ const Navbar = () => {
           <button className="hover:text-gray-600">
             <Search size={20} strokeWidth={1.5} />
           </button>
-          <Link to="/login" className="hover:text-gray-600">
-            <User size={20} strokeWidth={1.5} />
-          </Link>
+
+          {/* Logic Dropdown cho User Icon */}
+          {isAuthenticated ? (
+            <div className="relative" ref={dropdownRef}>
+              <button
+                onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                className="flex items-center hover:text-gray-600 focus:outline-none"
+              >
+                <User size={20} strokeWidth={1.5} />
+              </button>
+
+              {/* Menu Dropdown Kính mờ */}
+              {isDropdownOpen && (
+                <div className="absolute right-0 mt-4 w-48 rounded-xl border border-white/50 bg-white/70 p-2 shadow-lg backdrop-blur-xl">
+                  <Link
+                    to="/profile"
+                    onClick={() => setIsDropdownOpen(false)}
+                    className="block rounded-lg px-4 py-2 text-sm text-slate-700 transition-colors hover:bg-white/60"
+                  >
+                    Tài khoản của tôi
+                  </Link>
+                  <button
+                    onClick={handleLogout}
+                    className="block w-full rounded-lg px-4 py-2 text-left text-sm text-red-600 transition-colors hover:bg-red-50/50"
+                  >
+                    Đăng xuất
+                  </button>
+                </div>
+              )}
+            </div>
+          ) : (
+            <Link to="/login" className="hover:text-gray-600">
+              <User size={20} strokeWidth={1.5} />
+            </Link>
+          )}
+
           <Link to="/cart" className="relative flex items-center hover:text-gray-600">
             <ShoppingBag size={20} strokeWidth={1.5} />
             <span className="absolute -right-2 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-black text-[10px] text-white">
