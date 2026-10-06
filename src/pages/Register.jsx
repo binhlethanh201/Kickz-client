@@ -19,11 +19,8 @@ const Register = () => {
 
     try {
       await authService.register(firstName, lastName, email, password);
-
-      // Đăng ký thành công thì chuyển hướng người dùng về trang Đăng nhập
       navigate("/login");
     } catch (err) {
-      // Bắt lỗi từ backend (ví dụ: Email đã tồn tại)
       setError(err.response?.data?.message || "Đăng ký thất bại. Vui lòng thử lại.");
     } finally {
       setLoading(false);
@@ -43,7 +40,6 @@ const Register = () => {
         )}
 
         <div className="space-y-6">
-          {/* Hàng chứa Tên và Họ */}
           <div className="flex gap-4">
             <div className="w-1/2">
               <label className="mb-2 block text-xs font-semibold uppercase tracking-widest text-gray-900">

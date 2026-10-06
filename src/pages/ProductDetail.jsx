@@ -16,7 +16,9 @@ const ProductDetail = () => {
   const [isInWishlist, setIsInWishlist] = useState(false);
   const [isTogglingWishlist, setIsTogglingWishlist] = useState(false);
 
-  // Biến kiểm tra xem user đã đăng nhập chưa
+  const [selectedSize, setSelectedSize] = useState("");
+  const [selectedColor, setSelectedColor] = useState("");
+
   const isAuthenticated = !!localStorage.getItem("token");
 
   useEffect(() => {
@@ -25,22 +27,20 @@ const ProductDetail = () => {
         const productData = await productService.getProductById(id);
         setProduct(productData);
 
-        // Chỉ gọi API check Wishlist nếu THỰC SỰ có token
+        if (productData.size && productData.size.length > 0) {
+          setSelectedSize(productData.size[0]);
+        }
+        if (productData.color && productData.color.length > 0) {
+          setSelectedColor(productData.color[0]);
+        }
+
         if (isAuthenticated) {
           try {
             const wishlistData = await wishlistService.getWishlist();
             const isSaved = wishlistData.wishlist?.some((item) => item._id === id || item === id);
             setIsInWishlist(!!isSaved);
-          } catch (wishlistError) {
-            // Cố tình bỏ qua lỗi 403/401 nếu token hết hạn để không làm sập trang
-            console.log("Không thể lấy wishlist, có thể token đã hết hạn.");
-            // Nếu token hỏng, dọn dẹp luôn
-            if (
-              wishlistError.response &&
-              (wishlistError.response.status === 401 || wishlistError.response.status === 403)
-            ) {
-              localStorage.removeItem("token");
-            }
+          } catch (error) {
+            console.log("Không thể lấy wishlist.");
           }
         }
       } catch (error) {
@@ -54,17 +54,27 @@ const ProductDetail = () => {
   }, [id, isAuthenticated]);
 
   const handleAddToCart = async () => {
-    // Rào trước ngay tại thời điểm click
     if (!isAuthenticated) {
       alert("Vui lòng đăng nhập để mua hàng!");
       navigate("/login");
       return;
     }
+    if (product?.size?.length > 0 && !selectedSize) {
+      return alert("Vui lòng chọn Size!");
+    }
+    if (product?.color?.length > 0 && !selectedColor) {
+      return alert("Vui lòng chọn Màu sắc!");
+    }
 
     setIsAddingCart(true);
     try {
-      await cartService.addToCart(product._id, 1, "42", "black");
-      alert("Đã thêm vào giỏ hàng!");
+      await cartService.addToCart(
+        product._id,
+        1,
+        selectedSize ? Number(selectedSize) : null,
+        selectedColor || null,
+      );
+      alert("Thêm vào giỏ hàng thành công!");
     } catch (error) {
       alert("Có lỗi xảy ra khi thêm vào giỏ");
     } finally {
@@ -73,13 +83,11 @@ const ProductDetail = () => {
   };
 
   const handleToggleWishlist = async () => {
-    // Rào trước ngay tại thời điểm click
     if (!isAuthenticated) {
-      alert("Vui lòng đăng nhập để lưu sản phẩm yêu thích!");
+      alert("Vui lòng đăng nhập để lưu sản phẩm!");
       navigate("/login");
       return;
     }
-
     setIsTogglingWishlist(true);
     try {
       if (isInWishlist) {
@@ -117,7 +125,6 @@ const ProductDetail = () => {
   return (
     <div className="mx-auto max-w-7xl px-4 py-12 md:py-24">
       <div className="flex flex-col gap-12 md:flex-row lg:gap-24">
-        {/* Cột trái: Hình ảnh */}
         <div className="relative aspect-[4/5] w-full overflow-hidden rounded-2xl bg-gray-100 shadow-sm md:w-1/2">
           <img
             src={product.img}
@@ -126,7 +133,6 @@ const ProductDetail = () => {
           />
         </div>
 
-        {/* Cột phải: Thông tin & Hành động */}
         <div className="flex w-full flex-col justify-center md:w-1/2">
           <p className="mb-3 text-sm font-semibold uppercase tracking-widest text-gray-500">
             {product.brand?.name || "KICKZ ORIGINALS"}
@@ -134,10 +140,62 @@ const ProductDetail = () => {
           <h1 className="mb-4 text-3xl font-bold tracking-tight text-gray-900 md:text-5xl">
             {product.name}
           </h1>
-          <p className="mb-10 text-2xl font-semibold text-slate-800">${product.price}</p>
+          <p className="mb-8 text-2xl font-semibold text-slate-800">{product.price} VNĐ</p>
 
           <div className="space-y-8">
-            <div className="flex gap-4">
+            {product.color && product.color.length > 0 && (
+              <div>
+                <h3 className="mb-3 text-xs font-bold uppercase tracking-widest text-slate-900">
+                  Màu sắc:{" "}
+                  <span className="font-normal capitalize text-slate-600">{selectedColor}</span>
+                </h3>
+                <div className="flex flex-wrap gap-3">
+                  {product.color.map((c, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => setSelectedColor(c)}
+                      className={`h-10 rounded-xl border-2 px-4 text-sm font-medium capitalize transition-all ${
+                        selectedColor === c
+                          ? "border-slate-900 bg-slate-900 text-white"
+                          : "border-slate-200 bg-transparent text-slate-600 hover:border-slate-900"
+                      }`}
+                    >
+                      {c}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {product.size && product.size.length > 0 && (
+              <div>
+                <div className="mb-3 flex items-center justify-between">
+                  <h3 className="text-xs font-bold uppercase tracking-widest text-slate-900">
+                    Kích cỡ (Size)
+                  </h3>
+                  <button className="text-xs text-slate-500 underline hover:text-slate-900">
+                    Bảng size
+                  </button>
+                </div>
+                <div className="grid grid-cols-4 gap-3 sm:grid-cols-5">
+                  {product.size.map((s, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => setSelectedSize(s)}
+                      className={`flex h-12 items-center justify-center rounded-xl border-2 text-sm font-semibold transition-all ${
+                        selectedSize === s
+                          ? "border-slate-900 bg-slate-900 text-white"
+                          : "border-slate-200 bg-transparent text-slate-900 hover:border-slate-900"
+                      }`}
+                    >
+                      {s}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div className="flex gap-4 pt-4">
               <button
                 onClick={handleAddToCart}
                 disabled={isAddingCart}
@@ -159,7 +217,7 @@ const ProductDetail = () => {
               </button>
             </div>
 
-            <div className="mt-12 border-t border-slate-200 pt-8">
+            <div className="mt-8 border-t border-slate-200 pt-8">
               <h3 className="mb-4 text-sm font-bold uppercase tracking-widest text-slate-900">
                 Mô tả sản phẩm
               </h3>

@@ -1,13 +1,14 @@
 import apiClient from "./apiClient";
+import { getUserIdFromToken } from "../utils/authUtils";
 
 export const cartService = {
-  // Lấy giỏ hàng của user hiện tại
   getCart: async () => {
-    const response = await apiClient.get("/carts");
+    const userId = getUserIdFromToken();
+    if (!userId) throw new Error("Chưa đăng nhập");
+    const response = await apiClient.get(`/carts/user/${userId}`);
     return response.data;
   },
 
-  // Thêm sản phẩm vào giỏ
   addToCart: async (productId, quantity = 1, size, color) => {
     const response = await apiClient.post("/carts", {
       productId,
@@ -15,16 +16,25 @@ export const cartService = {
       size,
       color,
     });
+    window.dispatchEvent(new Event("cartUpdated"));
     return response.data;
   },
 
-  // Xóa sản phẩm khỏi giỏ
-  removeFromCart: async (productId, size, color) => {
-    // Tùy thuộc vào cách BE của bạn cấu hình API xóa (thường là DELETE hoặc PUT)
-    // Giả sử dùng POST/PUT tới một endpoint xóa cụ thể hoặc DELETE với data
-    const response = await apiClient.delete("/carts/item", {
-      data: { productId, size, color },
+  updateQuantity: async (productId, quantity, size, color) => {
+    const response = await apiClient.put(`/carts/${productId}`, {
+      quantity,
+      size,
+      color,
     });
+    window.dispatchEvent(new Event("cartUpdated"));
+    return response.data;
+  },
+
+  removeFromCart: async (productId, size, color) => {
+    const response = await apiClient.delete(`/carts/${productId}`, {
+      data: { size, color },
+    });
+    window.dispatchEvent(new Event("cartUpdated"));
     return response.data;
   },
 };

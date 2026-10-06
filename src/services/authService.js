@@ -21,6 +21,11 @@ export const authService = {
     return response.data;
   },
 
+  updateProfile: async (data) => {
+    const response = await apiClient.patch("/auth/me", data);
+    return response.data;
+  },
+
   changePassword: async (oldPassword, newPassword) => {
     const response = await apiClient.post("/auth/change-password", {
       oldPassword,

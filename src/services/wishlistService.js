@@ -1,15 +1,5 @@
 import apiClient from "./apiClient";
-
-const getUserIdFromToken = () => {
-  const token = localStorage.getItem("token");
-  if (!token) return null;
-  try {
-    const payload = JSON.parse(atob(token.split(".")[1]));
-    return payload.id || payload._id;
-  } catch (e) {
-    return null;
-  }
-};
+import { getUserIdFromToken } from "../utils/authUtils";
 
 export const wishlistService = {
   getWishlist: async () => {
@@ -21,11 +11,13 @@ export const wishlistService = {
 
   addToWishlist: async (productId) => {
     const response = await apiClient.post("/wishlists", { productId });
+    window.dispatchEvent(new Event("wishlistUpdated"));
     return response.data;
   },
 
   removeFromWishlist: async (productId) => {
     const response = await apiClient.delete(`/wishlists/${productId}`);
+    window.dispatchEvent(new Event("wishlistUpdated"));
     return response.data;
   },
 
@@ -36,6 +28,8 @@ export const wishlistService = {
       color,
       quantity,
     });
+    window.dispatchEvent(new Event("wishlistUpdated"));
+    window.dispatchEvent(new Event("cartUpdated"));
     return response.data;
   },
 };
