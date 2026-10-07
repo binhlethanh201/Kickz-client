@@ -15,7 +15,9 @@ const ProductCard = ({ product }) => {
         <p className="text-xs uppercase tracking-wider text-gray-500">
           {product.brand?.name || "KICKZ"}
         </p>
-        <p className="mt-2 text-sm font-semibold text-black">{product.price} VNĐ</p>
+        <p className="mt-2 text-sm font-semibold text-black">
+          {product.price.toLocaleString("vi-VN")} VNĐ
+        </p>
       </div>
     </Link>
   );

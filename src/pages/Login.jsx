@@ -17,9 +17,18 @@ const Login = () => {
 
     try {
       const data = await authService.login(email, password);
+
       if (data.token) {
         localStorage.setItem("token", data.token);
-        window.location.href = "/";
+        if (data.user?.role) {
+          localStorage.setItem("role", data.user.role);
+        }
+
+        if (data.user?.role === "admin") {
+          window.location.href = "/admin";
+        } else {
+          window.location.href = "/";
+        }
       }
     } catch (err) {
       setError(err.response?.data?.message || "Đăng nhập thất bại. Vui lòng thử lại.");
