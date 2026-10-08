@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
-import { Eye, Trash2, Search, X, Package } from "lucide-react";
+import { useParams, useNavigate } from "react-router-dom";
+import { Eye, Trash2, X, Package } from "lucide-react";
 import { adminService } from "../../services/adminService";
+import { SearchInput, toast, Pagination } from "../../components/shared/AdminUI";
 
 const STATUS_OPTIONS = [
   { value: "pending", label: "Chờ thanh toán", color: "bg-yellow-100 text-yellow-700" },
@@ -12,6 +14,11 @@ const STATUS_OPTIONS = [
 ];
 
 const AdminOrders = () => {
+  const { page } = useParams();
+  const navigate = useNavigate();
+  const currentPage = page ? parseInt(page, 10) : 1;
+  const itemsPerPage = 5;
+
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -22,6 +29,7 @@ const AdminOrders = () => {
 
   const fetchOrders = async () => {
     try {
+      setLoading(true);
       const data = await adminService.getAllOrders();
       setOrders(data);
     } catch (error) {
@@ -35,12 +43,17 @@ const AdminOrders = () => {
     fetchOrders();
   }, []);
 
+  useEffect(() => {
+    if (searchTerm) navigate(`/admin/orders`);
+  }, [searchTerm, navigate]);
+
   const handleStatusChange = async (orderId, newStatus) => {
     try {
       await adminService.updateOrderStatus(orderId, newStatus);
+      toast.success("Cập nhật trạng thái thành công!");
       fetchOrders();
     } catch (error) {
-      alert("Lỗi cập nhật trạng thái");
+      toast.error("Lỗi cập nhật trạng thái");
     }
   };
 
@@ -50,9 +63,10 @@ const AdminOrders = () => {
     ) {
       try {
         await adminService.deleteOrder(orderId);
+        toast.success("Đã xóa đơn hàng thành công!");
         fetchOrders();
       } catch (error) {
-        alert("Lỗi xóa đơn hàng.");
+        toast.error("Lỗi xóa đơn hàng.");
       }
     }
   };
@@ -64,7 +78,7 @@ const AdminOrders = () => {
       const data = await adminService.getOrderById(orderId);
       setSelectedOrder(data);
     } catch (error) {
-      alert("Không thể tải chi tiết đơn hàng.");
+      toast.error("Không thể tải chi tiết đơn hàng.");
       setIsModalOpen(false);
     } finally {
       setIsLoadingDetail(false);
@@ -88,8 +102,18 @@ const AdminOrders = () => {
       o.userId?.firstName?.toLowerCase().includes(searchTerm.toLowerCase()),
   );
 
+  const totalPages = Math.ceil(filteredOrders.length / itemsPerPage);
+  const currentData = filteredOrders.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage,
+  );
+
+  const handlePageChange = (newPage) => {
+    navigate(`/admin/orders/page/${newPage}`);
+  };
+
   return (
-    <div className="min-h-screen bg-slate-50 p-8">
+    <div className="animate-in fade-in min-h-screen bg-slate-50 p-8">
       <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <h1 className="text-3xl font-black uppercase tracking-widest text-slate-900">
           Quản lý Đơn hàng
@@ -97,20 +121,15 @@ const AdminOrders = () => {
       </div>
 
       <div className="mb-6 flex items-center gap-4 rounded-2xl border border-slate-100 bg-white p-4 shadow-sm">
-        <div className="flex flex-1 items-center gap-3 rounded-xl bg-slate-50 px-4 py-2 text-slate-500">
-          <Search size={20} />
-          <input
-            type="text"
-            placeholder="Tìm kiếm theo mã đơn hoặc email khách hàng..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full bg-transparent text-sm font-medium outline-none placeholder:text-slate-400"
-          />
-        </div>
+        <SearchInput
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          placeholder="Tìm kiếm theo mã đơn hoặc email khách hàng..."
+        />
       </div>
 
-      <div className="overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-sm">
-        <div className="overflow-x-auto">
+      <div className="flex flex-col overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-sm">
+        <div className="flex-1 overflow-x-auto">
           <table className="w-full text-left text-sm">
             <thead className="bg-slate-50 text-xs font-bold uppercase tracking-widest text-slate-500">
               <tr>
@@ -132,7 +151,7 @@ const AdminOrders = () => {
                     Đang tải dữ liệu...
                   </td>
                 </tr>
-              ) : filteredOrders.length === 0 ? (
+              ) : currentData.length === 0 ? (
                 <tr>
                   <td
                     colSpan="6"
@@ -142,7 +161,7 @@ const AdminOrders = () => {
                   </td>
                 </tr>
               ) : (
-                filteredOrders.map((order) => (
+                currentData.map((order) => (
                   <tr key={order._id} className="transition-colors hover:bg-slate-50">
                     <td className="p-4 font-black uppercase text-slate-900">
                       #{order.orderCode || order._id.slice(-6)}
@@ -198,6 +217,12 @@ const AdminOrders = () => {
             </tbody>
           </table>
         </div>
+
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={handlePageChange}
+        />
       </div>
 
       {isModalOpen && (

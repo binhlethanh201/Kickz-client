@@ -1,6 +1,7 @@
 import { Outlet, Link, useLocation, useNavigate } from "react-router-dom";
 import { LayoutDashboard, Users, Package, ShoppingCart, Tag, LogOut, Home } from "lucide-react";
 import { authService } from "../services/authService";
+import { ToastContainer } from "./shared/AdminUI";
 
 const AdminLayout = () => {
   const location = useLocation();
@@ -65,6 +66,7 @@ const AdminLayout = () => {
       <main className="ml-64 flex-1">
         <Outlet />
       </main>
+      <ToastContainer />
     </div>
   );
 };

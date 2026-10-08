@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
-import { Plus, Edit, Trash2, Search, X, ShieldAlert, ShieldCheck, User } from "lucide-react";
+import { useParams, useNavigate } from "react-router-dom";
+import { Plus, Edit, Trash2, ShieldAlert, ShieldCheck, User as UserIcon } from "lucide-react";
 import { adminService } from "../../services/adminService";
+import { Button, SearchInput, Modal, toast, Pagination } from "../../components/shared/AdminUI";
 
 const ROLE_COLORS = {
   owner: "bg-black text-white",
@@ -10,6 +12,11 @@ const ROLE_COLORS = {
 };
 
 const AdminUsers = () => {
+  const { page } = useParams();
+  const navigate = useNavigate();
+  const currentPage = page ? parseInt(page, 10) : 1;
+  const itemsPerPage = 5;
+
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -43,6 +50,10 @@ const AdminUsers = () => {
   useEffect(() => {
     fetchUsers();
   }, []);
+
+  useEffect(() => {
+    if (searchTerm) navigate(`/admin/users`);
+  }, [searchTerm, navigate]);
 
   const handleOpenModal = (user = null) => {
     if (user) {
@@ -82,21 +93,22 @@ const AdminUsers = () => {
         const updateData = { ...formData };
         delete updateData.password;
         await adminService.updateUser(editId, updateData);
-        alert("Cập nhật người dùng thành công!");
+        toast.success("Cập nhật người dùng thành công!");
       } else {
         if (!formData.password) {
-          alert("Vui lòng nhập mật khẩu cho người dùng mới!");
+          toast.error("Vui lòng nhập mật khẩu cho người dùng mới!");
           setIsSubmitting(false);
           return;
         }
         await adminService.createUser(formData);
-        alert("Thêm người dùng mới thành công!");
+        toast.success("Thêm người dùng mới thành công!");
+        navigate(`/admin/users`);
       }
 
       handleCloseModal();
       fetchUsers();
     } catch (error) {
-      alert(error.response?.data?.message || "Có lỗi xảy ra khi lưu người dùng.");
+      toast.error(error.response?.data?.message || "Có lỗi xảy ra khi lưu người dùng.");
     } finally {
       setIsSubmitting(false);
     }
@@ -104,15 +116,16 @@ const AdminUsers = () => {
 
   const handleDelete = async (id, role) => {
     if (role === "owner" || role === "admin") {
-      return alert("Không thể xóa tài khoản Admin hoặc Owner qua giao diện này!");
+      return toast.error("Không thể xóa tài khoản Admin hoặc Owner qua giao diện này!");
     }
 
     if (window.confirm("Bạn có chắc chắn muốn xóa tài khoản này?")) {
       try {
         await adminService.deleteUser(id);
+        toast.success("Đã xóa tài khoản thành công!");
         fetchUsers();
       } catch (error) {
-        alert("Có lỗi xảy ra khi xóa.");
+        toast.error("Có lỗi xảy ra khi xóa.");
       }
     }
   };
@@ -123,36 +136,37 @@ const AdminUsers = () => {
       u.email.toLowerCase().includes(searchTerm.toLowerCase()),
   );
 
+  const totalPages = Math.ceil(filteredUsers.length / itemsPerPage);
+  const currentData = filteredUsers.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage,
+  );
+
+  const handlePageChange = (newPage) => {
+    navigate(`/admin/users/page/${newPage}`);
+  };
+
   return (
-    <div className="min-h-screen bg-slate-50 p-8">
+    <div className="animate-in fade-in min-h-screen bg-slate-50 p-8">
       <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <h1 className="text-3xl font-black uppercase tracking-widest text-slate-900">
           Quản lý Tài khoản
         </h1>
-        <button
-          onClick={() => handleOpenModal()}
-          className="flex items-center gap-2 rounded-xl bg-slate-900 px-6 py-3 text-sm font-bold uppercase tracking-widest text-white transition-all hover:bg-slate-800 hover:shadow-lg"
-        >
-          <Plus size={18} strokeWidth={2.5} />
-          Tạo tài khoản mới
-        </button>
       </div>
 
       <div className="mb-6 flex items-center gap-4 rounded-2xl border border-slate-100 bg-white p-4 shadow-sm">
-        <div className="flex flex-1 items-center gap-3 rounded-xl bg-slate-50 px-4 py-2 text-slate-500">
-          <Search size={20} />
-          <input
-            type="text"
-            placeholder="Tìm kiếm theo tên hoặc email..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full bg-transparent text-sm font-medium outline-none placeholder:text-slate-400"
-          />
-        </div>
+        <SearchInput
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          placeholder="Tìm kiếm theo tên hoặc email..."
+        />
+        <Button icon={Plus} onClick={() => handleOpenModal()}>
+          Tạo tài khoản
+        </Button>
       </div>
 
-      <div className="overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-sm">
-        <div className="overflow-x-auto">
+      <div className="flex flex-col overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-sm">
+        <div className="flex-1 overflow-x-auto">
           <table className="w-full text-left text-sm">
             <thead className="bg-slate-50 text-xs font-bold uppercase tracking-widest text-slate-500">
               <tr>
@@ -173,7 +187,7 @@ const AdminUsers = () => {
                     Đang tải dữ liệu...
                   </td>
                 </tr>
-              ) : filteredUsers.length === 0 ? (
+              ) : currentData.length === 0 ? (
                 <tr>
                   <td
                     colSpan="5"
@@ -183,11 +197,11 @@ const AdminUsers = () => {
                   </td>
                 </tr>
               ) : (
-                filteredUsers.map((user) => (
+                currentData.map((user) => (
                   <tr key={user._id} className="transition-colors hover:bg-slate-50">
                     <td className="flex items-center gap-4 p-4">
                       <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-slate-100 text-slate-400">
-                        <User size={24} />
+                        <UserIcon size={24} />
                       </div>
                       <div>
                         <span className="block font-bold text-slate-900">
@@ -238,133 +252,118 @@ const AdminUsers = () => {
             </tbody>
           </table>
         </div>
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={handlePageChange}
+        />
       </div>
 
-      {isModalOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm">
-          <div className="animate-in zoom-in-95 max-h-[90vh] w-full max-w-xl overflow-y-auto rounded-3xl bg-white p-8 shadow-2xl duration-200">
-            <div className="mb-6 flex items-center justify-between">
-              <h2 className="text-xl font-black uppercase tracking-widest text-slate-900">
-                {editId ? "Cập nhật tài khoản" : "Tạo tài khoản mới"}
-              </h2>
-              <button
-                onClick={handleCloseModal}
-                className="rounded-full p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-900"
-              >
-                <X size={20} strokeWidth={2.5} />
-              </button>
+      <Modal
+        isOpen={isModalOpen}
+        onClose={handleCloseModal}
+        title={editId ? "Cập nhật tài khoản" : "Tạo tài khoản mới"}
+      >
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+            <div>
+              <label className="mb-2 block text-xs font-bold uppercase tracking-widest text-slate-500">
+                Họ (Last Name) *
+              </label>
+              <input
+                type="text"
+                name="lastName"
+                required
+                value={formData.lastName}
+                onChange={handleInputChange}
+                className="w-full rounded-xl border-2 border-slate-100 bg-slate-50 p-3 text-sm font-medium outline-none focus:border-slate-900 focus:bg-white"
+              />
+            </div>
+            <div>
+              <label className="mb-2 block text-xs font-bold uppercase tracking-widest text-slate-500">
+                Tên (First Name) *
+              </label>
+              <input
+                type="text"
+                name="firstName"
+                required
+                value={formData.firstName}
+                onChange={handleInputChange}
+                className="w-full rounded-xl border-2 border-slate-100 bg-slate-50 p-3 text-sm font-medium outline-none focus:border-slate-900 focus:bg-white"
+              />
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-                <div>
-                  <label className="mb-2 block text-xs font-bold uppercase tracking-widest text-slate-500">
-                    Họ (Last Name) *
-                  </label>
-                  <input
-                    type="text"
-                    name="lastName"
-                    required
-                    value={formData.lastName}
-                    onChange={handleInputChange}
-                    className="w-full rounded-xl border-2 border-slate-100 bg-slate-50 p-3 text-sm font-medium outline-none focus:border-slate-900 focus:bg-white"
-                  />
-                </div>
-                <div>
-                  <label className="mb-2 block text-xs font-bold uppercase tracking-widest text-slate-500">
-                    Tên (First Name) *
-                  </label>
-                  <input
-                    type="text"
-                    name="firstName"
-                    required
-                    value={formData.firstName}
-                    onChange={handleInputChange}
-                    className="w-full rounded-xl border-2 border-slate-100 bg-slate-50 p-3 text-sm font-medium outline-none focus:border-slate-900 focus:bg-white"
-                  />
-                </div>
+            <div className="md:col-span-2">
+              <label className="mb-2 block text-xs font-bold uppercase tracking-widest text-slate-500">
+                Email *
+              </label>
+              <input
+                type="email"
+                name="email"
+                required
+                value={formData.email}
+                onChange={handleInputChange}
+                className="w-full rounded-xl border-2 border-slate-100 bg-slate-50 p-3 text-sm font-medium outline-none focus:border-slate-900 focus:bg-white"
+              />
+            </div>
 
-                <div className="md:col-span-2">
-                  <label className="mb-2 block text-xs font-bold uppercase tracking-widest text-slate-500">
-                    Email *
-                  </label>
-                  <input
-                    type="email"
-                    name="email"
-                    required
-                    value={formData.email}
-                    onChange={handleInputChange}
-                    className="w-full rounded-xl border-2 border-slate-100 bg-slate-50 p-3 text-sm font-medium outline-none focus:border-slate-900 focus:bg-white"
-                  />
-                </div>
+            <div className="md:col-span-2">
+              <label className="mb-2 block text-xs font-bold uppercase tracking-widest text-slate-500">
+                Phân quyền *
+              </label>
+              <select
+                name="role"
+                required
+                value={formData.role}
+                onChange={handleInputChange}
+                className="w-full cursor-pointer appearance-none rounded-xl border-2 border-slate-100 bg-slate-50 p-3 text-sm font-medium uppercase tracking-wider outline-none focus:border-slate-900 focus:bg-white"
+              >
+                <option value="user">User (Khách hàng)</option>
+                <option value="staff">Staff (Nhân viên)</option>
+                <option value="admin">Admin (Quản trị viên)</option>
+              </select>
+            </div>
 
-                <div className="md:col-span-2">
-                  <label className="mb-2 block text-xs font-bold uppercase tracking-widest text-slate-500">
-                    Phân quyền *
-                  </label>
-                  <select
-                    name="role"
-                    required
-                    value={formData.role}
-                    onChange={handleInputChange}
-                    className="w-full cursor-pointer appearance-none rounded-xl border-2 border-slate-100 bg-slate-50 p-3 text-sm font-medium uppercase tracking-wider outline-none focus:border-slate-900 focus:bg-white"
-                  >
-                    <option value="user">User (Khách hàng)</option>
-                    <option value="staff">Staff (Nhân viên)</option>
-                    <option value="admin">Admin (Quản trị viên)</option>
-                  </select>
-                </div>
+            <div className="md:col-span-2">
+              <label className="mb-2 block text-xs font-bold uppercase tracking-widest text-slate-500">
+                Số điện thoại
+              </label>
+              <input
+                type="text"
+                name="phone"
+                value={formData.phone}
+                onChange={handleInputChange}
+                className="w-full rounded-xl border-2 border-slate-100 bg-slate-50 p-3 text-sm font-medium outline-none focus:border-slate-900 focus:bg-white"
+              />
+            </div>
 
-                <div className="md:col-span-2">
-                  <label className="mb-2 block text-xs font-bold uppercase tracking-widest text-slate-500">
-                    Số điện thoại
-                  </label>
-                  <input
-                    type="text"
-                    name="phone"
-                    value={formData.phone}
-                    onChange={handleInputChange}
-                    className="w-full rounded-xl border-2 border-slate-100 bg-slate-50 p-3 text-sm font-medium outline-none focus:border-slate-900 focus:bg-white"
-                  />
-                </div>
-
-                {!editId && (
-                  <div className="md:col-span-2">
-                    <label className="mb-2 block text-xs font-bold uppercase tracking-widest text-slate-500">
-                      Mật khẩu khởi tạo *
-                    </label>
-                    <input
-                      type="password"
-                      name="password"
-                      required
-                      value={formData.password}
-                      onChange={handleInputChange}
-                      className="w-full rounded-xl border-2 border-slate-100 bg-slate-50 p-3 text-sm font-medium outline-none focus:border-slate-900 focus:bg-white"
-                    />
-                  </div>
-                )}
+            {!editId && (
+              <div className="md:col-span-2">
+                <label className="mb-2 block text-xs font-bold uppercase tracking-widest text-slate-500">
+                  Mật khẩu khởi tạo *
+                </label>
+                <input
+                  type="password"
+                  name="password"
+                  required
+                  value={formData.password}
+                  onChange={handleInputChange}
+                  className="w-full rounded-xl border-2 border-slate-100 bg-slate-50 p-3 text-sm font-medium outline-none focus:border-slate-900 focus:bg-white"
+                />
               </div>
-
-              <div className="flex justify-end gap-4 border-t border-slate-100 pt-4">
-                <button
-                  type="button"
-                  onClick={handleCloseModal}
-                  className="rounded-xl bg-slate-100 px-6 py-3 text-sm font-bold uppercase tracking-widest text-slate-600 transition-colors hover:bg-slate-200"
-                >
-                  Hủy
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="rounded-xl bg-slate-900 px-8 py-3 text-sm font-bold uppercase tracking-widest text-white transition-all hover:bg-slate-800 hover:shadow-lg disabled:opacity-50"
-                >
-                  {isSubmitting ? "Đang xử lý..." : "Lưu thông tin"}
-                </button>
-              </div>
-            </form>
+            )}
           </div>
-        </div>
-      )}
+
+          <div className="flex justify-end gap-4 border-t border-slate-100 pt-4">
+            <Button type="button" variant="secondary" onClick={handleCloseModal}>
+              Hủy
+            </Button>
+            <Button type="submit" disabled={isSubmitting}>
+              {isSubmitting ? "Đang xử lý..." : "Lưu thông tin"}
+            </Button>
+          </div>
+        </form>
+      </Modal>
     </div>
   );
 };

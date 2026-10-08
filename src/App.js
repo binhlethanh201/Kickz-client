@@ -20,6 +20,9 @@ import AdminProducts from "./pages/admin/AdminProducts";
 import AdminOrders from "./pages/admin/AdminOrders";
 import AdminUsers from "./pages/admin/AdminUsers";
 import AdminVouchers from "./pages/admin/AdminVouchers";
+import ProductTab from "./pages/admin/components/ProductTab";
+import BrandTab from "./pages/admin/components/BrandTab";
+import CategoryTab from "./pages/admin/components/CategoryTab";
 
 const ClientLayout = () => {
   return (
@@ -54,10 +57,20 @@ function App() {
 
         <Route path="/admin" element={<AdminLayout />}>
           <Route index element={<AdminDashboard />} />
-          <Route path="products" element={<AdminProducts />} />
+          <Route path="products" element={<AdminProducts />}>
+            <Route index element={<ProductTab />} />
+            <Route path="page/:page" element={<ProductTab />} />
+            <Route path="brands" element={<BrandTab />} />
+            <Route path="brands/page/:page" element={<BrandTab />} />{" "}
+            <Route path="categories" element={<CategoryTab />} />
+            <Route path="categories/page/:page" element={<CategoryTab />} />{" "}
+          </Route>
           <Route path="orders" element={<AdminOrders />} />
+          <Route path="orders/page/:page" element={<AdminOrders />} />
           <Route path="users" element={<AdminUsers />} />
+          <Route path="users/page/:page" element={<AdminUsers />} />
           <Route path="vouchers" element={<AdminVouchers />} />
+          <Route path="vouchers/page/:page" element={<AdminVouchers />} />
         </Route>
       </Routes>
     </Router>
