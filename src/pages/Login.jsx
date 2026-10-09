@@ -31,6 +31,11 @@ const Login = () => {
         }
       }
     } catch (err) {
+      if (err.response?.status === 403 || err.response?.status === 401) {
+        localStorage.removeItem("token");
+        localStorage.removeItem("role");
+      }
+
       setError(err.response?.data?.message || "Đăng nhập thất bại. Vui lòng thử lại.");
     } finally {
       setLoading(false);
@@ -48,7 +53,9 @@ const Login = () => {
 
       <form onSubmit={handleLogin} className="space-y-8">
         {error && (
-          <div className="bg-red-50 p-4 text-center text-sm font-medium text-red-600">{error}</div>
+          <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-center text-sm font-medium text-red-600 shadow-sm">
+            {error}
+          </div>
         )}
 
         <div className="space-y-6">

@@ -58,6 +58,10 @@ export const adminService = {
     const response = await apiClient.delete(`/admin/orders/${id}`);
     return response.data;
   },
+  confirmCODPayment: async (orderId) => {
+    const response = await apiClient.patch(`/admin/orders/${orderId}/confirm-payment`);
+    return response.data;
+  },
 
   // ================= VOUCHERS =================
   getAllVouchers: async () => {

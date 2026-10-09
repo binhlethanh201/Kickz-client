@@ -1,6 +1,14 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Plus, Edit, Trash2, ShieldAlert, ShieldCheck, User as UserIcon } from "lucide-react";
+import {
+  Plus,
+  Edit,
+  Trash2,
+  ShieldAlert,
+  ShieldCheck,
+  User as UserIcon,
+  RefreshCw,
+} from "lucide-react";
 import { adminService } from "../../services/adminService";
 import { Button, SearchInput, Modal, toast, Pagination } from "../../components/shared/AdminUI";
 
@@ -20,6 +28,7 @@ const AdminUsers = () => {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+  const [activeTab, setActiveTab] = useState("active");
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editId, setEditId] = useState(null);
@@ -116,25 +125,45 @@ const AdminUsers = () => {
 
   const handleDelete = async (id, role) => {
     if (role === "owner" || role === "admin") {
-      return toast.error("Không thể xóa tài khoản Admin hoặc Owner qua giao diện này!");
+      return toast.error("Không thể khóa tài khoản Admin hoặc Owner qua giao diện này!");
     }
 
-    if (window.confirm("Bạn có chắc chắn muốn xóa tài khoản này?")) {
+    if (window.confirm("Bạn có chắc chắn muốn khóa tài khoản này?")) {
       try {
         await adminService.deleteUser(id);
-        toast.success("Đã xóa tài khoản thành công!");
+        toast.success("Đã khóa tài khoản thành công!");
         fetchUsers();
       } catch (error) {
-        toast.error("Có lỗi xảy ra khi xóa.");
+        toast.error("Có lỗi xảy ra khi khóa.");
       }
     }
   };
 
-  const filteredUsers = users.filter(
-    (u) =>
+  const handleRestore = async (id) => {
+    if (window.confirm("Bạn có chắc chắn muốn khôi phục tài khoản này?")) {
+      try {
+        await adminService.updateUser(id, { isActive: true });
+        toast.success("Khôi phục tài khoản thành công!");
+        fetchUsers();
+      } catch (error) {
+        toast.error("Có lỗi xảy ra khi khôi phục.");
+      }
+    }
+  };
+
+  const userTabs = [
+    { id: "active", label: "Đang hoạt động" },
+    { id: "inactive", label: "Đã vô hiệu hóa" },
+  ];
+
+  const filteredUsers = users.filter((u) => {
+    const isUserActive = u.isActive !== false;
+    const matchesTab = activeTab === "active" ? isUserActive : !isUserActive;
+    const matchesSearch =
       (u.firstName + " " + u.lastName).toLowerCase().includes(searchTerm.toLowerCase()) ||
-      u.email.toLowerCase().includes(searchTerm.toLowerCase()),
-  );
+      u.email.toLowerCase().includes(searchTerm.toLowerCase());
+    return matchesTab && matchesSearch;
+  });
 
   const totalPages = Math.ceil(filteredUsers.length / itemsPerPage);
   const currentData = filteredUsers.slice(
@@ -154,15 +183,37 @@ const AdminUsers = () => {
         </h1>
       </div>
 
+      <div className="mb-8 flex gap-8 border-b border-slate-200">
+        {userTabs.map((tab) => (
+          <button
+            key={tab.id}
+            onClick={() => {
+              setActiveTab(tab.id);
+              setSearchTerm("");
+              navigate(`/admin/users`);
+            }}
+            className={`border-b-2 pb-4 text-sm font-bold uppercase tracking-widest transition-all ${
+              activeTab === tab.id
+                ? "border-slate-900 text-slate-900"
+                : "border-transparent text-slate-400 hover:text-slate-900"
+            }`}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
       <div className="mb-6 flex items-center gap-4 rounded-2xl border border-slate-100 bg-white p-4 shadow-sm">
         <SearchInput
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           placeholder="Tìm kiếm theo tên hoặc email..."
         />
-        <Button icon={Plus} onClick={() => handleOpenModal()}>
-          Tạo tài khoản
-        </Button>
+        {activeTab === "active" && (
+          <Button icon={Plus} onClick={() => handleOpenModal()}>
+            Tạo tài khoản
+          </Button>
+        )}
       </div>
 
       <div className="flex flex-col overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-sm">
@@ -198,7 +249,10 @@ const AdminUsers = () => {
                 </tr>
               ) : (
                 currentData.map((user) => (
-                  <tr key={user._id} className="transition-colors hover:bg-slate-50">
+                  <tr
+                    key={user._id}
+                    className={`transition-colors hover:bg-slate-50 ${activeTab === "inactive" ? "opacity-60" : ""}`}
+                  >
                     <td className="flex items-center gap-4 p-4">
                       <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-slate-100 text-slate-400">
                         <UserIcon size={24} />
@@ -229,22 +283,34 @@ const AdminUsers = () => {
                       {new Date(user.createdAt).toLocaleDateString("vi-VN")}
                     </td>
                     <td className="p-4">
-                      <div className="flex items-center justify-center gap-3">
-                        <button
-                          onClick={() => handleOpenModal(user)}
-                          className="rounded-lg bg-slate-100 p-2 text-slate-600 transition-colors hover:bg-slate-900 hover:text-white"
-                          title="Sửa"
-                        >
-                          <Edit size={16} />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(user._id, user.role)}
-                          className="rounded-lg bg-red-50 p-2 text-red-500 transition-colors hover:bg-red-500 hover:text-white"
-                          title="Xóa"
-                        >
-                          <Trash2 size={16} />
-                        </button>
-                      </div>
+                      {activeTab === "active" ? (
+                        <div className="flex items-center justify-center gap-3">
+                          <button
+                            onClick={() => handleOpenModal(user)}
+                            className="rounded-lg bg-slate-100 p-2 text-slate-600 transition-colors hover:bg-slate-900 hover:text-white"
+                            title="Sửa"
+                          >
+                            <Edit size={16} />
+                          </button>
+                          <button
+                            onClick={() => handleDelete(user._id, user.role)}
+                            className="rounded-lg bg-red-50 p-2 text-red-500 transition-colors hover:bg-red-500 hover:text-white"
+                            title="Khóa tài khoản"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="flex items-center justify-center gap-3">
+                          <button
+                            onClick={() => handleRestore(user._id)}
+                            className="rounded-lg bg-emerald-50 p-2 text-emerald-600 transition-colors hover:bg-emerald-500 hover:text-white"
+                            title="Khôi phục tài khoản"
+                          >
+                            <RefreshCw size={16} />
+                          </button>
+                        </div>
+                      )}
                     </td>
                   </tr>
                 ))
@@ -252,6 +318,7 @@ const AdminUsers = () => {
             </tbody>
           </table>
         </div>
+
         <Pagination
           currentPage={currentPage}
           totalPages={totalPages}

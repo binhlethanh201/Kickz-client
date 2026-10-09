@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Eye, Trash2, X, Package } from "lucide-react";
+import { Eye, Trash2, X, Package, Check, Clock } from "lucide-react";
 import { adminService } from "../../services/adminService";
 import { SearchInput, toast, Pagination } from "../../components/shared/AdminUI";
 
@@ -26,6 +26,7 @@ const AdminOrders = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [isLoadingDetail, setIsLoadingDetail] = useState(false);
+  const [isConfirmingPayment, setIsConfirmingPayment] = useState(false);
 
   const fetchOrders = async () => {
     try {
@@ -34,6 +35,7 @@ const AdminOrders = () => {
       setOrders(data);
     } catch (error) {
       console.error("Lỗi lấy đơn hàng:", error);
+      toast.error("Không thể tải danh sách đơn hàng");
     } finally {
       setLoading(false);
     }
@@ -57,6 +59,29 @@ const AdminOrders = () => {
     }
   };
 
+  const handleConfirmCODPayment = async (orderId) => {
+    if (
+      window.confirm(
+        "Xác nhận đã nhận tiền COD từ khách hàng? Hành động này sẽ cập nhật trạng thái thanh toán.",
+      )
+    ) {
+      try {
+        setIsConfirmingPayment(true);
+        const result = await adminService.confirmCODPayment(orderId);
+        toast.success("Xác nhận thanh toán COD thành công!");
+        if (selectedOrder && selectedOrder._id === orderId) {
+          setSelectedOrder(result.order);
+        }
+        fetchOrders();
+      } catch (error) {
+        console.error("Lỗi xác nhận thanh toán:", error);
+        toast.error(error.response?.data?.message || "Lỗi xác nhận thanh toán COD");
+      } finally {
+        setIsConfirmingPayment(false);
+      }
+    }
+  };
+
   const handleDeleteOrder = async (orderId) => {
     if (
       window.confirm("Bạn có chắc chắn muốn xóa đơn hàng này? Hành động này không thể hoàn tác!")
@@ -64,6 +89,7 @@ const AdminOrders = () => {
       try {
         await adminService.deleteOrder(orderId);
         toast.success("Đã xóa đơn hàng thành công!");
+        closeModal();
         fetchOrders();
       } catch (error) {
         toast.error("Lỗi xóa đơn hàng.");
@@ -275,11 +301,20 @@ const AdminOrders = () => {
                       <div className="space-y-2 text-sm text-slate-600">
                         <p className="flex justify-between">
                           <span className="font-semibold text-slate-900">Hình thức:</span>{" "}
-                          <span className="uppercase">{selectedOrder.paymentMethod}</span>
+                          <span className="uppercase">
+                            {selectedOrder.paymentMethod === "payos"
+                              ? "PayOS (QR Code)"
+                              : "COD (Trả tiền khi nhận"}
+                            )
+                          </span>
                         </p>
                         <p className="flex justify-between">
                           <span className="font-semibold text-slate-900">Vận chuyển:</span>{" "}
-                          <span className="uppercase">{selectedOrder.shippingMethod}</span>
+                          <span className="uppercase">
+                            {selectedOrder.shippingMethod === "express"
+                              ? "Nhanh (20,000đ)"
+                              : "Thường"}
+                          </span>
                         </p>
                         <p className="flex items-center justify-between">
                           <span className="font-semibold text-slate-900">Trạng thái:</span>
@@ -288,6 +323,21 @@ const AdminOrders = () => {
                           >
                             {STATUS_OPTIONS.find((s) => s.value === selectedOrder.status)?.label}
                           </span>
+                        </p>
+
+                        <p className="flex items-center justify-between border-t border-slate-200 pt-2">
+                          <span className="font-semibold text-slate-900">Thanh toán:</span>
+                          {selectedOrder.paidAt ? (
+                            <span className="flex items-center gap-1 text-green-600">
+                              <Check size={14} />
+                              {new Date(selectedOrder.paidAt).toLocaleString("vi-VN")}
+                            </span>
+                          ) : (
+                            <span className="flex items-center gap-1 text-amber-600">
+                              <Clock size={14} />
+                              Chưa thanh toán
+                            </span>
+                          )}
                         </p>
                       </div>
                     </div>
@@ -363,6 +413,51 @@ const AdminOrders = () => {
                       </span>
                     </div>
                   </div>
+
+                  {selectedOrder.paymentMethod === "cod" &&
+                    selectedOrder.status === "pending" &&
+                    !selectedOrder.paidAt && (
+                      <div className="rounded-2xl border border-amber-200 bg-amber-50 p-6">
+                        <h3 className="mb-4 text-xs font-bold uppercase tracking-widest text-amber-900">
+                          Chờ xác nhận thanh toán COD
+                        </h3>
+                        <p className="mb-4 text-sm text-amber-800">
+                          Khách hàng sẽ thanh toán tiền mặt khi nhận hàng. Vui lòng xác nhận khi đã
+                          nhận tiền.
+                        </p>
+                        <button
+                          onClick={() => handleConfirmCODPayment(selectedOrder._id)}
+                          disabled={isConfirmingPayment}
+                          className="flex w-full items-center justify-center gap-2 rounded-lg bg-green-500 px-4 py-3 font-bold uppercase tracking-widest text-white transition-all hover:bg-green-600 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          {isConfirmingPayment ? (
+                            <>
+                              <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
+                              Đang xác nhận...
+                            </>
+                          ) : (
+                            <>
+                              <Check size={18} />
+                              Xác nhận đã nhận tiền COD
+                            </>
+                          )}
+                        </button>
+                      </div>
+                    )}
+
+                  {selectedOrder.paidAt && (
+                    <div className="rounded-2xl border border-green-200 bg-green-50 p-6">
+                      <div className="flex items-center gap-3">
+                        <Check size={24} className="text-green-600" />
+                        <div>
+                          <h3 className="font-bold text-green-900">Đã xác nhận thanh toán</h3>
+                          <p className="text-sm text-green-700">
+                            Lúc: {new Date(selectedOrder.paidAt).toLocaleString("vi-VN")}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
