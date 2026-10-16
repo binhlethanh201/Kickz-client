@@ -65,23 +65,27 @@ export const adminService = {
 
   // ================= VOUCHERS =================
   getAllVouchers: async () => {
-    const response = await apiClient.get("/admin/vouchers");
+    const response = await apiClient.get("/vouchers");
     return response.data;
   },
+
   getVoucherById: async (id) => {
-    const response = await apiClient.get(`/admin/vouchers/${id}`);
+    const response = await apiClient.get(`/vouchers/${id}`);
     return response.data;
   },
+
   createVoucher: async (voucherData) => {
-    const response = await apiClient.post("/admin/vouchers", voucherData);
+    const response = await apiClient.post("/vouchers", voucherData);
     return response.data;
   },
+
   updateVoucher: async (id, voucherData) => {
-    const response = await apiClient.put(`/admin/vouchers/${id}`, voucherData);
+    const response = await apiClient.put(`/vouchers/${id}`, voucherData);
     return response.data;
   },
+
   deleteVoucher: async (id) => {
-    const response = await apiClient.delete(`/admin/vouchers/${id}`);
+    const response = await apiClient.delete(`/vouchers/${id}`);
     return response.data;
   },
 

@@ -3,17 +3,20 @@ import { useNavigate, Link } from "react-router-dom";
 import { cartService } from "../services/cartService";
 import { authService } from "../services/authService";
 import { orderService } from "../services/orderService";
+import VoucherInput from "../components/VoucherInput";
+import { voucherService } from "../services/voucherService";
 
 const Checkout = () => {
   const navigate = useNavigate();
   const [cart, setCart] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [appliedVoucher, setAppliedVoucher] = useState(null);
+  const [discountAmount, setDiscountAmount] = useState(0);
   const [checkoutForm, setCheckoutForm] = useState({
     address: "",
     shippingMethod: "standard",
     paymentMethod: "cod",
-    voucherCode: "",
   });
 
   useEffect(() => {
@@ -52,6 +55,21 @@ const Checkout = () => {
     return checkoutForm.shippingMethod === "express" ? 20000 : 0;
   };
 
+  const handleApplyVoucher = (voucher, discount, newTotal) => {
+    setAppliedVoucher(voucher);
+    setDiscountAmount(discount);
+  };
+
+  const handleRemoveVoucher = () => {
+    setAppliedVoucher(null);
+    setDiscountAmount(0);
+  };
+
+  const subtotal = calculateSubTotal();
+  const shippingFee = getShippingFee();
+  const totalBeforeDiscount = subtotal + shippingFee;
+  const finalTotal = totalBeforeDiscount - discountAmount;
+
   const handleCheckout = async (e) => {
     e.preventDefault();
     if (!checkoutForm.address.trim()) {
@@ -71,7 +89,7 @@ const Checkout = () => {
         address: checkoutForm.address,
         shippingMethod: checkoutForm.shippingMethod,
         paymentMethod: checkoutForm.paymentMethod,
-        voucherCode: checkoutForm.voucherCode || undefined,
+        voucherCode: appliedVoucher?.code || null,
       };
 
       const data = await orderService.createOrder(payload);
@@ -166,6 +184,13 @@ const Checkout = () => {
             </div>
           </section>
 
+          <VoucherInput
+            orderTotal={totalBeforeDiscount}
+            onApply={handleApplyVoucher}
+            appliedVoucher={appliedVoucher}
+            onRemove={handleRemoveVoucher}
+          />
+
           <section>
             <h2 className="mb-6 border-b border-slate-200 pb-2 text-lg font-bold uppercase tracking-widest text-slate-900">
               Phương thức thanh toán
@@ -239,21 +264,30 @@ const Checkout = () => {
               <div className="flex justify-between text-sm">
                 <span className="text-slate-600">Tạm tính</span>
                 <span className="font-semibold text-slate-900">
-                  {calculateSubTotal().toLocaleString("vi-VN")} VNĐ
+                  {subtotal.toLocaleString("vi-VN")} VNĐ
                 </span>
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-slate-600">Phí vận chuyển</span>
                 <span className="font-semibold text-slate-900">
-                  {getShippingFee().toLocaleString("vi-VN")} VNĐ
+                  {shippingFee.toLocaleString("vi-VN")} VNĐ
                 </span>
               </div>
+
+              {discountAmount > 0 && (
+                <div className="flex justify-between text-sm text-green-600">
+                  <span className="text-slate-600">Giảm giá</span>
+                  <span className="font-semibold text-green-600">
+                    -{discountAmount.toLocaleString("vi-VN")} VNĐ
+                  </span>
+                </div>
+              )}
             </div>
 
             <div className="mb-8 flex items-center justify-between">
               <span className="text-lg font-bold uppercase text-slate-900">Tổng cộng</span>
               <span className="text-3xl font-bold text-slate-900">
-                {(calculateSubTotal() + getShippingFee()).toLocaleString("vi-VN")} VNĐ
+                {finalTotal.toLocaleString("vi-VN")} VNĐ
               </span>
             </div>
 

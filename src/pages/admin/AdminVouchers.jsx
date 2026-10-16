@@ -17,14 +17,15 @@ const AdminVouchers = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editId, setEditId] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-
   const initialFormState = {
     code: "",
     description: "",
-    discountType: "Percentage",
+    discountType: "percent",
     discountValue: "",
     minOrderValue: 0,
-    expiresAt: "",
+    startDate: "",
+    endDate: "",
+    usageLimit: "",
     isActive: true,
   };
   const [formData, setFormData] = useState(initialFormState);
@@ -52,20 +53,22 @@ const AdminVouchers = () => {
   const handleOpenModal = (voucher = null) => {
     if (voucher) {
       setEditId(voucher._id);
-      let formDiscountType = "Percentage";
-      if (voucher.discountType === "amount") formDiscountType = "Fixed";
-      let formattedDate = "";
-      if (voucher.endDate) {
-        formattedDate = new Date(voucher.endDate).toISOString().split("T")[0];
-      }
+      const formattedStartDate = voucher.startDate
+        ? new Date(voucher.startDate).toISOString().split("T")[0]
+        : "";
+      const formattedEndDate = voucher.endDate
+        ? new Date(voucher.endDate).toISOString().split("T")[0]
+        : "";
 
       setFormData({
         code: voucher.code,
         description: voucher.description || "",
-        discountType: formDiscountType,
+        discountType: voucher.discountType,
         discountValue: voucher.discountValue,
         minOrderValue: voucher.minOrderValue || 0,
-        expiresAt: formattedDate,
+        startDate: formattedStartDate,
+        endDate: formattedEndDate,
+        usageLimit: voucher.usageLimit || "",
         isActive: voucher.isActive,
       });
     } else {
@@ -99,6 +102,7 @@ const AdminVouchers = () => {
         code: formData.code.toUpperCase().trim(),
         discountValue: Number(formData.discountValue),
         minOrderValue: Number(formData.minOrderValue),
+        usageLimit: formData.usageLimit ? Number(formData.usageLimit) : null,
       };
 
       if (editId) {
@@ -176,7 +180,7 @@ const AdminVouchers = () => {
                 <th className="p-4">Mã Voucher</th>
                 <th className="p-4">Giá trị giảm</th>
                 <th className="p-4">Đơn tối thiểu</th>
-                <th className="p-4">Hạn sử dụng</th>
+                <th className="p-4">Thời gian</th>
                 <th className="p-4">Trạng thái</th>
                 <th className="p-4 text-center">Thao tác</th>
               </tr>
@@ -226,10 +230,13 @@ const AdminVouchers = () => {
                         ? `${voucher.minOrderValue.toLocaleString("vi-VN")} đ`
                         : "Không yêu cầu"}
                     </td>
-                    <td className="p-4">
-                      <span className="font-medium text-slate-600">
-                        {new Date(voucher.endDate).toLocaleDateString("vi-VN")}
-                      </span>
+                    <td className="p-4 text-xs">
+                      <div className="whitespace-nowrap font-medium text-slate-600">
+                        Từ: {new Date(voucher.startDate).toLocaleDateString("vi-VN")}
+                      </div>
+                      <div className="mt-1 whitespace-nowrap font-medium text-red-500">
+                        Đến: {new Date(voucher.endDate).toLocaleDateString("vi-VN")}
+                      </div>
                     </td>
                     <td className="p-4">
                       <span
@@ -276,7 +283,7 @@ const AdminVouchers = () => {
       >
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-            <div className="md:col-span-2">
+            <div>
               <label className="mb-2 block text-xs font-bold uppercase tracking-widest text-slate-500">
                 Mã Code *
               </label>
@@ -293,6 +300,21 @@ const AdminVouchers = () => {
 
             <div>
               <label className="mb-2 block text-xs font-bold uppercase tracking-widest text-slate-500">
+                Giới hạn lượt dùng (Tuỳ chọn)
+              </label>
+              <input
+                type="number"
+                name="usageLimit"
+                min="1"
+                value={formData.usageLimit}
+                onChange={handleInputChange}
+                placeholder="Số lượt tối đa..."
+                className="w-full rounded-xl border-2 border-slate-100 bg-slate-50 p-3 text-sm font-medium outline-none focus:border-slate-900 focus:bg-white"
+              />
+            </div>
+
+            <div>
+              <label className="mb-2 block text-xs font-bold uppercase tracking-widest text-slate-500">
                 Loại giảm giá *
               </label>
               <select
@@ -302,8 +324,8 @@ const AdminVouchers = () => {
                 onChange={handleInputChange}
                 className="w-full cursor-pointer appearance-none rounded-xl border-2 border-slate-100 bg-slate-50 p-3 text-sm font-medium outline-none focus:border-slate-900 focus:bg-white"
               >
-                <option value="Percentage">Phần trăm (%)</option>
-                <option value="Fixed">Số tiền cố định (VNĐ)</option>
+                <option value="percent">Phần trăm (%)</option>
+                <option value="amount">Số tiền cố định (VNĐ)</option>
               </select>
             </div>
 
@@ -318,12 +340,12 @@ const AdminVouchers = () => {
                 min="1"
                 value={formData.discountValue}
                 onChange={handleInputChange}
-                placeholder={formData.discountType === "Percentage" ? "10" : "100000"}
+                placeholder={formData.discountType === "percent" ? "10" : "100000"}
                 className="w-full rounded-xl border-2 border-slate-100 bg-slate-50 p-3 text-sm font-medium outline-none focus:border-slate-900 focus:bg-white"
               />
             </div>
 
-            <div>
+            <div className="md:col-span-2">
               <label className="mb-2 block text-xs font-bold uppercase tracking-widest text-slate-500">
                 Đơn hàng tối thiểu (VNĐ)
               </label>
@@ -339,13 +361,27 @@ const AdminVouchers = () => {
 
             <div>
               <label className="mb-2 block text-xs font-bold uppercase tracking-widest text-slate-500">
+                Ngày bắt đầu *
+              </label>
+              <input
+                type="date"
+                name="startDate"
+                required
+                value={formData.startDate}
+                onChange={handleInputChange}
+                className="w-full cursor-pointer rounded-xl border-2 border-slate-100 bg-slate-50 p-3 text-sm font-medium outline-none focus:border-slate-900 focus:bg-white"
+              />
+            </div>
+
+            <div>
+              <label className="mb-2 block text-xs font-bold uppercase tracking-widest text-slate-500">
                 Ngày hết hạn *
               </label>
               <input
                 type="date"
-                name="expiresAt"
+                name="endDate"
                 required
-                value={formData.expiresAt}
+                value={formData.endDate}
                 onChange={handleInputChange}
                 className="w-full cursor-pointer rounded-xl border-2 border-slate-100 bg-slate-50 p-3 text-sm font-medium outline-none focus:border-slate-900 focus:bg-white"
               />
@@ -378,7 +414,7 @@ const AdminVouchers = () => {
                 htmlFor="isActive"
                 className="cursor-pointer text-sm font-bold uppercase tracking-widest text-slate-900"
               >
-                Kích hoạt Voucher (Cho phép sử dụng ngay)
+                Kích hoạt Voucher (Cho phép sử dụng)
               </label>
             </div>
           </div>
