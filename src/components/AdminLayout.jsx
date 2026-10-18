@@ -1,5 +1,14 @@
 import { Outlet, Link, useLocation, useNavigate } from "react-router-dom";
-import { LayoutDashboard, Users, Package, ShoppingCart, Tag, LogOut, Home } from "lucide-react";
+import {
+  LayoutDashboard,
+  Users,
+  Package,
+  ShoppingCart,
+  Tag,
+  LogOut,
+  Home,
+  RefreshCcw,
+} from "lucide-react";
 import { authService } from "../services/authService";
 import { ToastContainer } from "./shared/AdminUI";
 
@@ -15,6 +24,7 @@ const AdminLayout = () => {
   const navItems = [
     { path: "/admin", icon: LayoutDashboard, label: "Tổng quan" },
     { path: "/admin/orders", icon: ShoppingCart, label: "Đơn hàng" },
+    { path: "/admin/refunds", icon: RefreshCcw, label: "Hoàn tiền" },
     { path: "/admin/products", icon: Package, label: "Sản phẩm" },
     { path: "/admin/users", icon: Users, label: "Khách hàng" },
     { path: "/admin/vouchers", icon: Tag, label: "Khuyến mãi" },

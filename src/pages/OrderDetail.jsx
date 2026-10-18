@@ -2,14 +2,9 @@ import { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 import { ArrowLeft, Check, Clock } from "lucide-react";
 import { orderService } from "../services/orderService";
-import {
-  canCancelOrder,
-  getCancelButtonText,
-  getCancelMessage,
-  getRefundInfo,
-  getStatusLabel,
-  getStatusColor,
-} from "../utils/orderUtils";
+import { refundService } from "../services/refundService";
+import { canRequestRefund } from "../utils/refundUtils";
+import RefundRequestModal from "../components/refund/RefundRequestModal";
 import { toast } from "../components/shared/AdminUI";
 
 const formatStatus = (status) => {
@@ -29,7 +24,7 @@ const OrderDetail = () => {
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isCancelling, setIsCancelling] = useState(false);
-  const [cancelReason, setCancelReason] = useState("");
+  const [isRefundModalOpen, setIsRefundModalOpen] = useState(false);
 
   const fetchOrder = async () => {
     try {
@@ -47,25 +42,46 @@ const OrderDetail = () => {
     fetchOrder();
   }, [id]);
 
+  const isPaidOrder = !!order?.paidAt;
+  const isPendingUnpaid = order?.status === "pending" && !order?.paidAt;
+  const isCancellable = order && ["pending", "paid"].includes(order.status);
+
   const handleCancelOrder = async () => {
-    if (!canCancelOrder(order)) {
+    if (!isCancellable) {
       toast.error("Không thể hủy đơn hàng ở trạng thái này");
       return;
     }
 
-    const confirmed = window.confirm(getCancelMessage(order));
+    const confirmed = window.confirm(
+      isPaidOrder
+        ? "Hủy đơn hàng này? Đơn đã thanh toán nên hệ thống sẽ tạo yêu cầu hoàn tiền."
+        : "Hủy đơn hàng này? Đơn chưa thanh toán nên hủy trực tiếp, không phát sinh hoàn tiền.",
+    );
     if (!confirmed) return;
 
     try {
       setIsCancelling(true);
-      const result = await orderService.cancelOrder(order._id, cancelReason);
-      toast.success(result.message);
+      const result = await orderService.cancelOrder(order._id);
+      toast.success(result.message || "Đã hủy đơn hàng");
       setOrder(result.order);
-      setCancelReason("");
     } catch (error) {
       toast.error(error.response?.data?.message || "Lỗi hủy đơn hàng");
     } finally {
       setIsCancelling(false);
+    }
+  };
+
+  const handleRefundSubmit = async ({ reason, description }) => {
+    try {
+      const result = await refundService.createRequest(order._id, {
+        reason,
+        description,
+      });
+      toast.success(result.message || "Đã gửi yêu cầu hoàn tiền");
+      setIsRefundModalOpen(false);
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Lỗi gửi yêu cầu hoàn tiền");
+      throw error;
     }
   };
 
@@ -171,29 +187,7 @@ const OrderDetail = () => {
           </div>
         </div>
 
-        {order.status === "cancelled" && getRefundInfo(order) && (
-          <div className="mt-8 rounded-xl border border-blue-200 bg-blue-50 p-6">
-            <h3 className="mb-3 flex items-center gap-2 text-sm font-bold text-blue-900">
-              💳 Thông tin hoàn tiền
-            </h3>
-            <div className="space-y-2 text-sm text-blue-800">
-              <p>
-                <span className="font-semibold">Loại:</span> {getRefundInfo(order).type}
-              </p>
-              <p>
-                <span className="font-semibold">Số tiền:</span>{" "}
-                {order.totalPrice.toLocaleString("vi-VN")} VNĐ
-              </p>
-              <p>
-                <span className="font-semibold">Thời gian:</span> {getRefundInfo(order).timeline}
-              </p>
-              <p className="pt-2 text-xs">
-                <span className="font-semibold">Trạng thái:</span> {getRefundInfo(order).status}
-              </p>
-            </div>
-          </div>
-        )}
-        {canCancelOrder(order) && (
+        {isPendingUnpaid && (
           <div className="mt-8 space-y-4">
             <button
               onClick={handleCancelOrder}
@@ -206,27 +200,110 @@ const OrderDetail = () => {
                   Đang xử lý...
                 </span>
               ) : (
-                getCancelButtonText(order)
+                "Hủy đơn hàng (không hoàn tiền)"
               )}
             </button>
-            <p className="text-center text-xs text-slate-500">{getCancelMessage(order)}</p>
-          </div>
-        )}
-        {!canCancelOrder(order) && order.status !== "cancelled" && (
-          <div className="mt-8 rounded-xl border border-yellow-200 bg-yellow-50 p-6">
-            <p className="text-sm font-semibold text-yellow-900">⚠️ Không thể hủy đơn hàng</p>
-            <p className="mt-2 text-sm text-yellow-800">
-              Trạng thái "{formatStatus(order.status).text}" không cho phép hủy. Vui lòng liên hệ
-              admin nếu cần hỗ trợ.
+            <p className="text-center text-xs text-slate-500">
+              Đơn hàng chờ thanh toán có thể hủy trực tiếp. Không phát sinh chi phí hoàn tiền.
             </p>
           </div>
         )}
+
+        {isCancellable && isPaidOrder && (
+          <div className="mt-8 space-y-4">
+            <button
+              onClick={handleCancelOrder}
+              disabled={isCancelling}
+              className="w-full rounded-xl bg-slate-900 px-4 py-4 text-sm font-bold uppercase tracking-widest text-white transition-all hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {isCancelling ? (
+                <span className="flex items-center justify-center gap-2">
+                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent"></div>
+                  Đang xử lý...
+                </span>
+              ) : (
+                "Hủy đơn hàng & hoàn tiền"
+              )}
+            </button>
+            <p className="text-center text-xs text-slate-500">
+              Đơn đã thanh toán nên khi hủy, hệ thống sẽ tạo yêu cầu hoàn tiền.{" "}
+              <Link to="/refunds" className="font-bold underline">
+                Xem yêu cầu của tôi
+              </Link>
+            </p>
+          </div>
+        )}
+
+        {!isCancellable &&
+          order.status !== "cancelled" &&
+          (canRequestRefund(order) ? (
+            <div className="mt-8 space-y-4">
+              <button
+                onClick={() => setIsRefundModalOpen(true)}
+                className="w-full rounded-xl bg-slate-900 px-4 py-4 text-sm font-bold uppercase tracking-widest text-white transition-all hover:bg-slate-800"
+              >
+                Yêu cầu hoàn tiền
+              </button>
+              <p className="text-center text-xs text-slate-500">
+                Đơn ở trạng thái "{formatStatus(order.status).text}" cần yêu cầu hoàn tiền. Admin sẽ
+                duyệt trong 3 ngày.{" "}
+                <Link to="/refunds" className="font-bold underline">
+                  Xem yêu cầu của tôi
+                </Link>
+              </p>
+            </div>
+          ) : (
+            <div className="mt-8 rounded-xl border border-yellow-200 bg-yellow-50 p-6">
+              <p className="text-sm font-semibold text-yellow-900">Không thể hủy đơn hàng</p>
+              <p className="mt-2 text-sm text-yellow-800">
+                Trạng thái "{formatStatus(order.status).text}" không cho phép hủy hoặc yêu cầu hoàn
+                tiền. Vui lòng liên hệ admin nếu cần hỗ trợ.
+              </p>
+            </div>
+          ))}
+
+        {order.status === "cancelled" && order.paidAt && (
+          <div className="mt-8 rounded-xl border border-blue-200 bg-blue-50 p-6">
+            <h3 className="mb-3 text-sm font-bold text-blue-900">💳 Thông tin hoàn tiền</h3>
+            <div className="space-y-2 text-sm text-blue-800">
+              <p>
+                <span className="font-semibold">Số tiền:</span>{" "}
+                {order.totalPrice.toLocaleString("vi-VN")} VNĐ
+              </p>
+              <p>
+                <span className="font-semibold">Trạng thái:</span> Chờ xử lý hoàn tiền
+              </p>
+              <p className="pt-2 text-xs">
+                <Link to="/refunds" className="font-bold underline">
+                  Xem chi tiết yêu cầu hoàn tiền →
+                </Link>
+              </p>
+            </div>
+          </div>
+        )}
+
+        {order.status === "cancelled" && !order.paidAt && (
+          <div className="mt-8 rounded-xl border border-slate-200 bg-slate-50 p-6">
+            <p className="text-sm font-semibold text-slate-700">Đơn hàng đã hủy</p>
+            <p className="mt-2 text-sm text-slate-500">
+              Đơn chưa thanh toán nên không phát sinh hoàn tiền.
+            </p>
+          </div>
+        )}
+
         {order.status === "pending" && order.paymentMethod === "payos" && (
           <p className="mt-4 text-center text-xs text-slate-500">
             * Đơn hàng đang chờ thanh toán qua PayOS. Vui lòng quét mã QR để hoàn tất thanh toán.
           </p>
         )}
       </div>
+
+      <RefundRequestModal
+        isOpen={isRefundModalOpen}
+        order={order}
+        onClose={() => setIsRefundModalOpen(false)}
+        onSubmit={handleRefundSubmit}
+      />
     </div>
   );
 };

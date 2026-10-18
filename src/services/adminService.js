@@ -63,6 +63,38 @@ export const adminService = {
     return response.data;
   },
 
+  // ================= REFUNDS =================
+  getAllRefunds: async (status) => {
+    const response = await apiClient.get("/admin/refunds", {
+      params: status ? { status } : {},
+    });
+    return response.data;
+  },
+  getRefundById: async (id) => {
+    const response = await apiClient.get(`/admin/refunds/${id}`);
+    return response.data;
+  },
+  approveRefund: async (id, adminNote) => {
+    const response = await apiClient.patch(`/admin/refunds/${id}/approve`, { adminNote });
+    return response.data;
+  },
+  rejectRefund: async (id, adminNote) => {
+    const response = await apiClient.patch(`/admin/refunds/${id}/reject`, { adminNote });
+    return response.data;
+  },
+  markRefundReceived: async (id, adminNote) => {
+    const response = await apiClient.patch(`/admin/refunds/${id}/received`, { adminNote });
+    return response.data;
+  },
+  markRefunded: async (id, { refundMethod, refundReference, adminNote }) => {
+    const response = await apiClient.patch(`/admin/refunds/${id}/refunded`, {
+      refundMethod,
+      refundReference,
+      adminNote,
+    });
+    return response.data;
+  },
+
   // ================= VOUCHERS =================
   getAllVouchers: async () => {
     const response = await apiClient.get("/vouchers");

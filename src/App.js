@@ -13,6 +13,7 @@ import Wishlist from "./pages/Wishlist";
 import Checkout from "./pages/Checkout";
 import Orders from "./pages/Orders";
 import OrderDetail from "./pages/OrderDetail";
+import MyRefunds from "./pages/MyRefunds";
 import Search from "./pages/Search";
 import Shop from "./pages/Shop";
 import AdminDashboard from "./pages/admin/AdminDashboard";
@@ -20,6 +21,7 @@ import AdminProducts from "./pages/admin/AdminProducts";
 import AdminOrders from "./pages/admin/AdminOrders";
 import AdminUsers from "./pages/admin/AdminUsers";
 import AdminVouchers from "./pages/admin/AdminVouchers";
+import AdminRefunds from "./pages/admin/AdminRefunds";
 import ProductTab from "./pages/admin/components/ProductTab";
 import BrandTab from "./pages/admin/components/BrandTab";
 import CategoryTab from "./pages/admin/components/CategoryTab";
@@ -95,6 +97,14 @@ function App() {
               </ProtectedRoute>
             }
           />
+          <Route
+            path="/refunds"
+            element={
+              <ProtectedRoute>
+                <MyRefunds />
+              </ProtectedRoute>
+            }
+          />
         </Route>
 
         <Route
@@ -120,6 +130,7 @@ function App() {
           <Route path="users/page/:page" element={<AdminUsers />} />
           <Route path="vouchers" element={<AdminVouchers />} />
           <Route path="vouchers/page/:page" element={<AdminVouchers />} />
+          <Route path="refunds" element={<AdminRefunds />} />
         </Route>
       </Routes>
     </Router>

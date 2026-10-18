@@ -46,6 +46,14 @@ const Orders = () => {
       <h1 className="mb-10 text-center text-3xl font-light uppercase tracking-widest text-slate-900">
         Đơn hàng của bạn
       </h1>
+      <div className="mb-6 text-center">
+        <Link
+          to="/refunds"
+          className="text-xs font-bold uppercase tracking-widest text-slate-500 underline hover:text-slate-900"
+        >
+          Xem yêu cầu hoàn tiền của tôi
+        </Link>
+      </div>
 
       {orders.length === 0 ? (
         <div className="rounded-2xl border border-white/60 bg-white/50 py-12 text-center">
