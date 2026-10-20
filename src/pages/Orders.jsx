@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Package, Eye } from "lucide-react";
+import { Package, Eye, RefreshCcw } from "lucide-react";
 import { orderService } from "../services/orderService";
 import { authService } from "../services/authService";
 
@@ -43,25 +43,27 @@ const Orders = () => {
 
   return (
     <div className="mx-auto min-h-[75vh] max-w-5xl px-4 py-16">
-      <h1 className="mb-10 text-center text-3xl font-light uppercase tracking-widest text-slate-900">
-        Đơn hàng của bạn
-      </h1>
-      <div className="mb-6 text-center">
+      <div className="mb-8 flex justify-end">
         <Link
           to="/refunds"
-          className="text-xs font-bold uppercase tracking-widest text-slate-500 underline hover:text-slate-900"
+          className="inline-flex items-center justify-center gap-2 rounded-xl bg-slate-100 px-6 py-3 text-xs font-bold uppercase tracking-widest text-slate-600 transition-all hover:bg-slate-200 hover:text-slate-900"
         >
-          Xem yêu cầu hoàn tiền của tôi
+          <RefreshCcw size={16} strokeWidth={2.5} />
+          Yêu cầu hoàn tiền của tôi
         </Link>
       </div>
 
+      <h1 className="mb-10 text-center text-3xl font-light uppercase tracking-widest text-slate-900">
+        Đơn hàng của bạn
+      </h1>
+
       {orders.length === 0 ? (
         <div className="rounded-2xl border border-white/60 bg-white/50 py-12 text-center">
-          <Package size={40} className="mx-auto mb-3 text-slate-300" />
-          <p className="mb-4 text-slate-500">Bạn chưa có đơn hàng nào.</p>
+          <Package size={40} className="mx-auto mb-5 text-slate-300" strokeWidth={1.5} />
+          <p className="mb-6 text-sm font-medium text-slate-500">Bạn chưa có đơn hàng nào.</p>
           <Link
             to="/"
-            className="text-sm font-bold uppercase tracking-widest text-slate-900 underline"
+            className="inline-flex items-center justify-center rounded-xl bg-slate-900 px-8 py-3 text-xs font-bold uppercase tracking-widest text-white transition-all hover:bg-slate-800 hover:shadow-lg"
           >
             Mua sắm ngay
           </Link>

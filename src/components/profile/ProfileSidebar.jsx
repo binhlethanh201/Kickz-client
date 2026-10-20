@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { User, Lock, LogOut, Package } from "lucide-react";
+import { User, Lock, LogOut, Package, Wallet } from "lucide-react";
 import { authService } from "../../services/authService";
 
 const ProfileSidebar = ({ activeTab, setActiveTab }) => {
@@ -19,6 +19,16 @@ const ProfileSidebar = ({ activeTab, setActiveTab }) => {
           }`}
         >
           <User size={18} /> Hồ sơ
+        </button>
+        <button
+          onClick={() => setActiveTab("wallet")}
+          className={`flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-colors ${
+            activeTab === "wallet"
+              ? "bg-slate-900 text-white"
+              : "text-slate-600 hover:bg-white/60 hover:text-slate-900"
+          }`}
+        >
+          <Wallet size={18} /> Ví của tôi
         </button>
         <Link
           to="/order"

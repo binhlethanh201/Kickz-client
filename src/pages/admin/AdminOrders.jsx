@@ -82,21 +82,6 @@ const AdminOrders = () => {
     }
   };
 
-  const handleDeleteOrder = async (orderId) => {
-    if (
-      window.confirm("Bạn có chắc chắn muốn xóa đơn hàng này? Hành động này không thể hoàn tác!")
-    ) {
-      try {
-        await adminService.deleteOrder(orderId);
-        toast.success("Đã xóa đơn hàng thành công!");
-        closeModal();
-        fetchOrders();
-      } catch (error) {
-        toast.error("Lỗi xóa đơn hàng.");
-      }
-    }
-  };
-
   const handleViewDetails = async (orderId) => {
     setIsModalOpen(true);
     setIsLoadingDetail(true);
@@ -227,13 +212,6 @@ const AdminOrders = () => {
                           title="Xem chi tiết"
                         >
                           <Eye size={16} />
-                        </button>
-                        <button
-                          onClick={() => handleDeleteOrder(order._id)}
-                          className="rounded-lg bg-red-50 p-2 text-red-500 transition-colors hover:bg-red-500 hover:text-white"
-                          title="Xóa đơn hàng"
-                        >
-                          <Trash2 size={16} />
                         </button>
                       </div>
                     </td>

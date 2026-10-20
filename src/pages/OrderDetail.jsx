@@ -90,6 +90,8 @@ const OrderDetail = () => {
       <div className="animate-pulse py-24 text-center uppercase tracking-widest">Đang tải...</div>
     );
   if (!order) return <div className="py-24 text-center">Không tìm thấy đơn hàng.</div>;
+  const initialTotal =
+    order.items.reduce((sum, item) => sum + item.price * item.quantity, 0) + order.shippingFee;
 
   return (
     <div className="mx-auto min-h-[75vh] max-w-3xl px-4 py-16">
@@ -144,7 +146,9 @@ const OrderDetail = () => {
           <div className="flex justify-between">
             <span className="font-medium text-slate-600">Thanh toán:</span>
             <span className="font-bold uppercase tracking-wider">
-              {order.paymentMethod === "payos" ? "PayOS (QR Code)" : "COD (Trả tiền khi nhận)"}
+              {order.paymentMethod === "payos" && "PayOS (QR Code)"}
+              {order.paymentMethod === "cod" && "COD (Trả tiền khi nhận)"}
+              {order.paymentMethod === "wallet" && "Số dư trong hệ thống"}
             </span>
           </div>
           <div className="flex justify-between">
@@ -159,8 +163,9 @@ const OrderDetail = () => {
             <span className="font-medium text-slate-600">Giao tới:</span>
             <span className="max-w-[60%] text-right font-bold">{order.address}</span>
           </div>
+
           <div className="flex items-center justify-between border-t border-slate-200 pt-4">
-            <span className="font-medium text-slate-600">Thanh toán:</span>
+            <span className="font-medium text-slate-600">Trạng thái thanh toán:</span>
             {order.paidAt ? (
               <span className="flex items-center gap-1 font-bold text-green-600">
                 <Check size={16} />
@@ -173,17 +178,34 @@ const OrderDetail = () => {
               </span>
             )}
           </div>
-          {order.discount > 0 && (
-            <div className="flex justify-between text-green-600">
-              <span className="font-medium">Giảm giá:</span>
-              <span className="font-bold">-{order.discount.toLocaleString("vi-VN")} VNĐ</span>
+          <div className="mt-4 space-y-2 border-t border-slate-200 pt-4">
+            <div className="flex justify-between text-slate-600">
+              <span>Tạm tính:</span>
+              <span>{initialTotal.toLocaleString("vi-VN")} VNĐ</span>
             </div>
-          )}
-          <div className="mt-4 flex items-center justify-between border-t border-slate-200 pt-4">
-            <span className="font-bold uppercase tracking-widest text-slate-900">Tổng tiền:</span>
-            <span className="text-2xl font-black text-slate-900">
-              {order.totalPrice.toLocaleString("vi-VN")} VNĐ
-            </span>
+
+            {order.discount > 0 && (
+              <div className="flex justify-between text-green-600">
+                <span className="font-medium">Mã giảm giá:</span>
+                <span className="font-bold">-{order.discount.toLocaleString("vi-VN")} VNĐ</span>
+              </div>
+            )}
+
+            {order.walletUsed > 0 && (
+              <div className="flex justify-between text-blue-600">
+                <span className="font-medium">Đã thanh toán qua ví:</span>
+                <span className="font-bold">-{order.walletUsed.toLocaleString("vi-VN")} VNĐ</span>
+              </div>
+            )}
+
+            <div className="flex items-center justify-between pt-2">
+              <span className="font-bold uppercase tracking-widest text-slate-900">
+                Số tiền cần thanh toán:
+              </span>
+              <span className="text-2xl font-black text-slate-900">
+                {order.totalPrice.toLocaleString("vi-VN")} VNĐ
+              </span>
+            </div>
           </div>
         </div>
 
@@ -268,7 +290,7 @@ const OrderDetail = () => {
             <div className="space-y-2 text-sm text-blue-800">
               <p>
                 <span className="font-semibold">Số tiền:</span>{" "}
-                {order.totalPrice.toLocaleString("vi-VN")} VNĐ
+                {(order.totalPrice + (order.walletUsed || 0)).toLocaleString("vi-VN")} VNĐ
               </p>
               <p>
                 <span className="font-semibold">Trạng thái:</span> Chờ xử lý hoàn tiền
@@ -293,7 +315,7 @@ const OrderDetail = () => {
 
         {order.status === "pending" && order.paymentMethod === "payos" && (
           <p className="mt-4 text-center text-xs text-slate-500">
-            * Đơn hàng đang chờ thanh toán qua PayOS. Vui lòng quét mã QR để hoàn tất thanh toán.
+            Đơn hàng đang chờ thanh toán qua PayOS. Vui lòng quét mã QR để hoàn tất thanh toán.
           </p>
         )}
       </div>

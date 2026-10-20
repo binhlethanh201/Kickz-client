@@ -25,6 +25,7 @@ import AdminRefunds from "./pages/admin/AdminRefunds";
 import ProductTab from "./pages/admin/components/ProductTab";
 import BrandTab from "./pages/admin/components/BrandTab";
 import CategoryTab from "./pages/admin/components/CategoryTab";
+import AdminWithdrawals from "./pages/admin/AdminWithdrawals";
 
 const ClientLayout = () => {
   return (
@@ -131,6 +132,7 @@ function App() {
           <Route path="vouchers" element={<AdminVouchers />} />
           <Route path="vouchers/page/:page" element={<AdminVouchers />} />
           <Route path="refunds" element={<AdminRefunds />} />
+          <Route path="withdrawals" element={<AdminWithdrawals />} />
         </Route>
       </Routes>
     </Router>

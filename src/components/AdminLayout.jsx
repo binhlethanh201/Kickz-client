@@ -8,6 +8,7 @@ import {
   LogOut,
   Home,
   RefreshCcw,
+  CreditCard,
 } from "lucide-react";
 import { authService } from "../services/authService";
 import { ToastContainer } from "./shared/AdminUI";
@@ -25,6 +26,7 @@ const AdminLayout = () => {
     { path: "/admin", icon: LayoutDashboard, label: "Tổng quan" },
     { path: "/admin/orders", icon: ShoppingCart, label: "Đơn hàng" },
     { path: "/admin/refunds", icon: RefreshCcw, label: "Hoàn tiền" },
+    { path: "/admin/withdrawals", icon: CreditCard, label: "Rút tiền" },
     { path: "/admin/products", icon: Package, label: "Sản phẩm" },
     { path: "/admin/users", icon: Users, label: "Khách hàng" },
     { path: "/admin/vouchers", icon: Tag, label: "Khuyến mãi" },

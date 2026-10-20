@@ -60,9 +60,9 @@ const MyRefunds = () => {
     <div className="mx-auto min-h-[75vh] max-w-5xl px-4 py-16">
       <Link
         to="/order"
-        className="mb-8 inline-flex items-center gap-2 text-sm font-medium text-slate-500 transition-colors hover:text-slate-900"
+        className="mb-8 inline-flex items-center justify-center gap-2 rounded-xl bg-slate-100 px-6 py-3 text-xs font-bold uppercase tracking-widest text-slate-600 transition-all hover:bg-slate-200 hover:text-slate-900"
       >
-        <ArrowLeft size={16} /> Quay lại đơn hàng
+        <ArrowLeft size={16} strokeWidth={2.5} /> Quay lại đơn hàng
       </Link>
 
       <h1 className="mb-10 text-center text-3xl font-light uppercase tracking-widest text-slate-900">
@@ -71,11 +71,13 @@ const MyRefunds = () => {
 
       {refunds.length === 0 ? (
         <div className="rounded-2xl border border-white/60 bg-white/50 py-12 text-center">
-          <Package size={40} className="mx-auto mb-3 text-slate-300" />
-          <p className="mb-4 text-slate-500">Bạn chưa có yêu cầu hoàn tiền nào.</p>
+          <Package size={40} className="mx-auto mb-5 text-slate-300" strokeWidth={1.5} />
+          <p className="mb-6 text-sm font-medium text-slate-500">
+            Bạn chưa có yêu cầu hoàn tiền nào.
+          </p>
           <Link
             to="/order"
-            className="text-sm font-bold uppercase tracking-widest text-slate-900 underline"
+            className="inline-flex items-center justify-center rounded-xl bg-slate-900 px-8 py-3 text-xs font-bold uppercase tracking-widest text-white transition-all hover:bg-slate-800 hover:shadow-lg"
           >
             Xem đơn hàng
           </Link>
@@ -120,7 +122,7 @@ const MyRefunds = () => {
                   <div className="mt-4 space-y-1 border-t border-slate-100 pt-3">
                     {refund.history.map((h, idx) => (
                       <p key={idx} className="text-xs text-slate-500">
-                        • {ACTION_LABELS[h.action] || h.action}
+                        - {ACTION_LABELS[h.action] || h.action}
                         {h.note ? ` — ${h.note}` : ""} ({new Date(h.at).toLocaleString("vi-VN")})
                       </p>
                     ))}
@@ -137,7 +139,7 @@ const MyRefunds = () => {
                     <button
                       onClick={() => handleCancel(refund._id)}
                       disabled={acting}
-                      className="flex items-center gap-2 rounded-xl border-2 border-red-200 bg-red-50 px-4 py-2.5 text-xs font-bold uppercase tracking-widest text-red-600 hover:border-red-500 hover:bg-red-500 hover:text-white disabled:opacity-50"
+                      className="flex items-center gap-2 rounded-xl border-2 border-red-200 bg-red-50 px-4 py-2.5 text-xs font-bold uppercase tracking-widest text-red-600 transition-colors hover:border-red-500 hover:bg-red-500 hover:text-white disabled:opacity-50"
                     >
                       <XCircle size={14} /> Hủy yêu cầu
                     </button>

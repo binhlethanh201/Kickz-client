@@ -4,6 +4,7 @@ import { authService } from "../services/authService";
 import ProfileSidebar from "../components/profile/ProfileSidebar";
 import ProfileInfo from "../components/profile/ProfileInfo";
 import ProfilePassword from "../components/profile/ProfilePassword";
+import ProfileWallet from "../components/profile/ProfileWallet";
 
 const Profile = () => {
   const navigate = useNavigate();
@@ -51,6 +52,7 @@ const Profile = () => {
         <div className="w-full md:w-3/4">
           <div className="rounded-2xl border border-white/60 bg-white/50 p-8 shadow-sm backdrop-blur-xl md:p-10">
             {activeTab === "info" && <ProfileInfo user={user} onUpdateUser={setUser} />}
+            {activeTab === "wallet" && <ProfileWallet />}
             {activeTab === "password" && <ProfilePassword />}
           </div>
         </div>

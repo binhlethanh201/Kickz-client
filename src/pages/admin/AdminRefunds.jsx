@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
-import { useParams } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { Eye, Check, X } from "lucide-react";
 import apiClient from "../../services/apiClient";
-import { SearchInput, toast, Pagination, Modal, Button } from "../../components/shared/AdminUI";
+import { SearchInput, toast, Pagination } from "../../components/shared/AdminUI";
 import {
   getRefundStatusMeta,
   getRefundReasonLabel,
@@ -12,6 +12,7 @@ import {
 } from "../../utils/refundUtils";
 
 const AdminRefunds = () => {
+  const navigate = useNavigate();
   const [refunds, setRefunds] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -22,7 +23,7 @@ const AdminRefunds = () => {
   const [selected, setSelected] = useState(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
-  const [action, setAction] = useState(null);
+
   const [adminNote, setAdminNote] = useState("");
   const [refundMethod, setRefundMethod] = useState("bank_transfer");
   const [refundReference, setRefundReference] = useState("");
@@ -66,36 +67,36 @@ const AdminRefunds = () => {
   const closeModal = () => {
     setModalOpen(false);
     setSelected(null);
-    setAction(null);
     setAdminNote("");
     setRefundMethod("bank_transfer");
     setRefundReference("");
   };
 
-  const runAction = async () => {
-    if (action === "reject" && !adminNote.trim()) {
+  const runAction = async (actionType) => {
+    if (actionType === "reject" && !adminNote.trim()) {
       toast.error("Cần ghi lý do từ chối để lưu hồ sơ");
       return;
     }
-    if (action === "refunded" && refundMethod === "bank_transfer" && !refundReference.trim()) {
+    if (actionType === "refunded" && refundMethod === "bank_transfer" && !refundReference.trim()) {
       toast.error("Chuyển khoản cần mã tham chiếu");
       return;
     }
+
     try {
       setActing(true);
       const body =
-        action === "refunded"
+        actionType === "refunded"
           ? {
               adminNote: adminNote || undefined,
               refundMethod,
               refundReference: refundReference || undefined,
             }
           : { adminNote: adminNote || undefined };
-      const res = await apiClient.patch(`/admin/refunds/${selected._id}/${action}`, body);
+
+      const res = await apiClient.patch(`/admin/refunds/${selected._id}/${actionType}`, body);
       toast.success(res.data.message || "Xử lý thành công");
       setSelected(res.data.refund);
       fetchRefunds();
-      setAction(null);
       setAdminNote("");
       setRefundReference("");
     } catch (error) {
@@ -114,76 +115,30 @@ const AdminRefunds = () => {
       `${r.userId?.firstName || ""} ${r.userId?.lastName || ""}`.toLowerCase().includes(q)
     );
   });
+
   const totalPages = Math.ceil(filtered.length / itemsPerPage);
   const currentData = filtered.slice((page - 1) * itemsPerPage, page * itemsPerPage);
 
-  const actionButtons = (refund) => {
-    const btns = [];
-    if (refund.status === "requested") {
-      btns.push(
-        <button
-          key="approve"
-          onClick={() => setAction("approve")}
-          title="Duyệt"
-          className="rounded-lg bg-green-50 p-2 text-green-600 hover:bg-green-500 hover:text-white"
-        >
-          <Check size={16} />
-        </button>,
-        <button
-          key="reject"
-          onClick={() => setAction("reject")}
-          title="Từ chối"
-          className="rounded-lg bg-red-50 p-2 text-red-500 hover:bg-red-500 hover:text-white"
-        >
-          <X size={16} />
-        </button>,
-      );
-    }
-    if (["approved", "shipped_back", "received"].includes(refund.status)) {
-      btns.push(
-        <button
-          key="received"
-          onClick={() => setAction("received")}
-          title="Xác nhận đủ điều kiện hoàn tiền"
-          className="rounded-lg bg-indigo-50 p-2 text-indigo-600 hover:bg-indigo-500 hover:text-white"
-        >
-          <Check size={16} />
-        </button>,
-      );
-    }
-    if (["approved", "shipped_back", "received"].includes(refund.status)) {
-      btns.push(
-        <button
-          key="refunded"
-          onClick={() => setAction("refunded")}
-          title="Hoàn tiền"
-          className="rounded-lg bg-slate-900 p-2 text-white hover:bg-slate-700"
-        >
-          <Check size={16} />
-        </button>,
-      );
-    }
-    return btns;
-  };
-
   return (
-    <div className="min-h-screen bg-slate-50 p-8">
+    <div className="animate-in fade-in min-h-screen bg-slate-50 p-8">
       <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <h1 className="text-3xl font-black uppercase tracking-widest text-slate-900">
           Quản lý Hoàn tiền
         </h1>
       </div>
 
-      <div className="mb-6 flex flex-col gap-3 rounded-2xl border border-slate-100 bg-white p-4 shadow-sm md:flex-row md:items-center">
-        <SearchInput
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          placeholder="Tìm theo mã đơn, email, tên khách..."
-        />
+      <div className="mb-6 flex flex-col gap-4 rounded-2xl border border-slate-100 bg-white p-4 shadow-sm md:flex-row md:items-center">
+        <div className="flex-1">
+          <SearchInput
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder="Tìm theo mã đơn, email, tên khách hàng..."
+          />
+        </div>
         <select
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
-          className="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold uppercase tracking-wider text-slate-600 outline-none"
+          className="cursor-pointer appearance-none rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm font-bold uppercase tracking-wider text-slate-700 outline-none hover:bg-slate-100"
         >
           <option value="">Tất cả trạng thái</option>
           {REFUND_STATUSES.map((s) => (
@@ -246,7 +201,7 @@ const AdminRefunds = () => {
                       </td>
                       <td className="p-4">
                         <span
-                          className={`rounded-full px-3 py-1.5 text-xs font-bold uppercase tracking-wider ${meta.color}`}
+                          className={`rounded px-3 py-1.5 text-xs font-bold uppercase tracking-wider ${meta.color}`}
                         >
                           {meta.label}
                         </span>
@@ -255,12 +210,11 @@ const AdminRefunds = () => {
                         <div className="flex items-center justify-center gap-2">
                           <button
                             onClick={() => openDetail(r._id)}
-                            title="Xem chi tiết"
-                            className="rounded-lg bg-slate-100 p-2 text-slate-600 hover:bg-slate-900 hover:text-white"
+                            title="Xử lý / Xem chi tiết"
+                            className="rounded-lg bg-slate-100 p-2 text-slate-600 transition-colors hover:bg-slate-900 hover:text-white"
                           >
                             <Eye size={16} />
                           </button>
-                          {actionButtons(r)}
                         </div>
                       </td>
                     </tr>
@@ -272,148 +226,243 @@ const AdminRefunds = () => {
         </div>
         <Pagination currentPage={page} totalPages={totalPages} onPageChange={setPage} />
       </div>
-
-      <Modal isOpen={modalOpen} onClose={closeModal} title="Chi tiết hoàn tiền">
-        {detailLoading || !selected ? (
-          <p className="animate-pulse py-10 text-center font-bold uppercase tracking-widest text-slate-400">
-            Đang tải chi tiết...
-          </p>
-        ) : (
-          <div className="space-y-6">
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              <div className="rounded-2xl border border-slate-100 bg-slate-50 p-5">
-                <h3 className="mb-3 text-xs font-bold uppercase tracking-widest text-slate-400">
-                  Khách hàng
-                </h3>
-                <p className="font-bold text-slate-900">
-                  {selected.userId?.firstName} {selected.userId?.lastName}
-                </p>
-                <p className="text-sm text-slate-600">{selected.userId?.email}</p>
-                <p className="text-sm text-slate-600">{selected.userId?.phone}</p>
-              </div>
-              <div className="rounded-2xl border border-slate-100 bg-slate-50 p-5">
-                <h3 className="mb-3 text-xs font-bold uppercase tracking-widest text-slate-400">
-                  Đơn hàng
-                </h3>
-                <p className="font-bold text-slate-900">#{selected.orderId?.orderCode}</p>
-                <p className="text-sm text-slate-600">
-                  Tổng: {selected.refundAmount?.toLocaleString("vi-VN")} đ
-                </p>
-                <p className="text-sm text-slate-600">
-                  Thanh toán: {selected.orderId?.paymentMethod || "—"}
+      {modalOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm">
+          <div className="animate-in zoom-in-95 max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-3xl bg-white shadow-2xl duration-200">
+            <div className="sticky top-0 z-10 flex items-center justify-between border-b border-slate-100 bg-white/90 p-6 backdrop-blur-md">
+              <div>
+                <h2 className="text-xl font-black uppercase tracking-widest text-slate-900">
+                  Chi tiết & Xử lý Hoàn tiền
+                </h2>
+                <p className="mt-1 text-sm font-medium uppercase tracking-widest text-slate-500">
+                  Mã đơn: #{selected?.orderId?.orderCode || selected?._id?.slice(-6)}
                 </p>
               </div>
+              <button
+                onClick={closeModal}
+                className="rounded-full p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-900"
+              >
+                <X size={20} strokeWidth={2.5} />
+              </button>
             </div>
 
-            <div className="rounded-2xl border border-slate-100 p-5 text-sm">
-              <p className="mb-2">
-                <span className="font-bold">Lý do: </span>
-                {getRefundReasonLabel(selected.reason)}
-              </p>
-              {selected.description && (
-                <p className="mb-2 text-slate-600">{selected.description}</p>
-              )}
-              {selected.returnTrackingCode && (
-                <p className="mb-2">
-                  <span className="font-bold">Vận đơn trả hàng: </span>
-                  {selected.returnTrackingCode} ({selected.returnCarrier || "—"})
-                </p>
-              )}
-              {selected.refundMethod && (
-                <p className="mb-2">
-                  <span className="font-bold">Hình thức hoàn: </span>
-                  {getRefundMethodLabel(selected.refundMethod)}
-                  {selected.refundReference ? ` — ${selected.refundReference}` : ""}
-                </p>
-              )}
-              {selected.adminNote && (
-                <p className="rounded-xl bg-slate-50 px-4 py-2 text-slate-600">
-                  <span className="font-bold text-slate-900">Ghi chú admin: </span>
-                  {selected.adminNote}
-                </p>
-              )}
-            </div>
-
-            {!action ? (
-              <div className="flex flex-wrap gap-3">
-                {selected.status === "requested" && (
-                  <>
-                    <Button variant="primary" icon={Check} onClick={() => setAction("approve")}>
-                      Duyệt
-                    </Button>
-                    <Button variant="danger" icon={X} onClick={() => setAction("reject")}>
-                      Từ chối
-                    </Button>
-                  </>
-                )}
-                {["approved", "shipped_back", "received"].includes(selected.status) && (
-                  <Button variant="primary" icon={Check} onClick={() => setAction("received")}>
-                    Xác nhận đủ điều kiện
-                  </Button>
-                )}
-                {["approved", "shipped_back", "received"].includes(selected.status) && (
-                  <Button variant="primary" icon={Check} onClick={() => setAction("refunded")}>
-                    Hoàn tiền
-                  </Button>
-                )}
-              </div>
-            ) : (
-              <div className="space-y-4 rounded-2xl border border-slate-200 p-5">
-                <h3 className="text-xs font-bold uppercase tracking-widest text-slate-500">
-                  {action === "approve" && "Duyệt yêu cầu"}
-                  {action === "reject" && "Từ chối yêu cầu (bắt buộc ghi lý do)"}
-                  {action === "received" && "Xác nhận đủ điều kiện hoàn tiền"}
-                  {action === "refunded" && "Hoàn tiền (cập nhật kho + hủy đơn)"}
-                </h3>
-                {action === "refunded" && selected.orderId?.paymentMethod === "payos" && (
-                  <p className="rounded-xl bg-blue-50 px-4 py-2 text-sm text-blue-800">
-                    Đơn PayOS sẽ được hoàn vào số dư của khách. Vui lòng chọn Hoàn vào số dư.
+            <div className="p-6">
+              {detailLoading || !selected ? (
+                <div className="py-20 text-center">
+                  <p className="animate-pulse font-bold uppercase tracking-widest text-slate-400">
+                    Đang tải chi tiết...
                   </p>
-                )}
-                {action === "refunded" && (
-                  <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-                    <select
-                      value={refundMethod}
-                      onChange={(e) => setRefundMethod(e.target.value)}
-                      className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm outline-none"
-                    >
-                      {REFUND_METHODS.map((m) => (
-                        <option key={m.value} value={m.value}>
-                          {m.label}
-                        </option>
-                      ))}
-                    </select>
-                    <input
-                      value={refundReference}
-                      onChange={(e) => setRefundReference(e.target.value)}
-                      placeholder="Mã tham chiếu (bắt buộc với chuyển khoản)"
-                      className="rounded-xl border border-slate-200 px-4 py-2.5 text-sm outline-none"
-                    />
-                  </div>
-                )}
-                <textarea
-                  value={adminNote}
-                  onChange={(e) => setAdminNote(e.target.value)}
-                  rows={3}
-                  maxLength={500}
-                  placeholder={
-                    action === "reject" ? "Lý do từ chối..." : "Ghi chú (không bắt buộc)..."
-                  }
-                  className="w-full resize-none rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none"
-                />
-                <div className="flex gap-3">
-                  <Button variant="secondary" onClick={() => setAction(null)}>
-                    Hủy
-                  </Button>
-                  <Button variant="primary" disabled={acting} onClick={runAction}>
-                    {acting ? "Đang xử lý..." : "Xác nhận"}
-                  </Button>
                 </div>
-              </div>
-            )}
+              ) : (
+                <div className="space-y-8">
+                  <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                    <div className="rounded-2xl border border-slate-100 bg-slate-50 p-6">
+                      <h3 className="mb-4 text-xs font-bold uppercase tracking-widest text-slate-400">
+                        Khách hàng
+                      </h3>
+                      <p className="mb-1 font-bold text-slate-900">
+                        {selected.userId?.firstName} {selected.userId?.lastName}
+                      </p>
+                      <p className="mb-1 text-sm text-slate-600">{selected.userId?.email}</p>
+                      <p className="mt-4 text-sm text-slate-600">
+                        <span className="font-semibold text-slate-900">SĐT:</span>{" "}
+                        {selected.userId?.phone || "Chưa cập nhật"}
+                      </p>
+                    </div>
+                    <div className="rounded-2xl border border-slate-100 bg-slate-50 p-6">
+                      <h3 className="mb-4 text-xs font-bold uppercase tracking-widest text-slate-400">
+                        Thông tin Đơn
+                      </h3>
+                      <p className="mb-1 text-sm text-slate-600">
+                        <span className="font-semibold text-slate-900">Mã đơn:</span> #
+                        {selected.orderId?.orderCode}
+                      </p>
+                      <p className="mb-1 text-sm text-slate-600">
+                        <span className="font-semibold text-slate-900">Thanh toán bằng:</span>{" "}
+                        <span className="uppercase">{selected.orderId?.paymentMethod || "—"}</span>
+                      </p>
+                      <p className="mt-4 text-xl font-black text-slate-900">
+                        Hoàn: {selected.refundAmount?.toLocaleString("vi-VN")} đ
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="rounded-2xl border border-slate-100 bg-white p-6 text-sm">
+                    <h3 className="mb-4 text-xs font-bold uppercase tracking-widest text-slate-400">
+                      Chi tiết Yêu cầu
+                    </h3>
+                    <p className="mb-3">
+                      <span className="font-bold text-slate-900">Lý do: </span>
+                      {getRefundReasonLabel(selected.reason)}
+                    </p>
+                    {selected.description && (
+                      <p className="mb-3 text-slate-600">{selected.description}</p>
+                    )}
+                    {selected.returnTrackingCode && (
+                      <p className="mb-3">
+                        <span className="font-bold text-slate-900">Vận đơn trả hàng: </span>
+                        <span className="rounded bg-slate-100 px-2 py-1 font-mono">
+                          {selected.returnTrackingCode}
+                        </span>{" "}
+                        ({selected.returnCarrier || "—"})
+                      </p>
+                    )}
+                    {selected.refundMethod && (
+                      <p className="mb-3">
+                        <span className="font-bold text-slate-900">Hình thức hoàn: </span>
+                        {getRefundMethodLabel(selected.refundMethod)}
+                        {selected.refundReference && (
+                          <span className="ml-1 font-mono text-indigo-600">
+                            — {selected.refundReference}
+                          </span>
+                        )}
+                      </p>
+                    )}
+                    {selected.adminNote && (
+                      <div className="mt-4 rounded-xl border border-slate-100 bg-slate-50 p-4 text-slate-700">
+                        <span className="mb-1 block font-bold text-slate-900">
+                          Ghi chú Admin lần trước:{" "}
+                        </span>
+                        {selected.adminNote}
+                      </div>
+                    )}
+                  </div>
+                  <div className="mt-8 border-t border-slate-100 pt-8">
+                    {selected.status === "requested" && (
+                      <div className="space-y-6">
+                        <div>
+                          <label className="mb-2 block text-xs font-bold uppercase tracking-widest text-slate-600">
+                            Ghi chú Admin <span className="text-sm text-red-500">*</span>{" "}
+                            <span className="font-medium normal-case tracking-normal text-slate-400">
+                              (Bắt buộc khi Từ chối)
+                            </span>
+                          </label>
+                          <textarea
+                            value={adminNote}
+                            onChange={(e) => setAdminNote(e.target.value)}
+                            rows={4}
+                            placeholder="Nhập lý do từ chối hoặc ghi chú nội bộ..."
+                            className="w-full resize-none rounded-xl border border-slate-200 bg-white p-4 text-sm outline-none transition-all focus:border-slate-400 focus:ring-4 focus:ring-slate-50"
+                          />
+                        </div>
+                        <div className="flex gap-4">
+                          <button
+                            onClick={() => runAction("approve")}
+                            disabled={acting}
+                            className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-green-500 px-4 py-3.5 font-bold uppercase tracking-widest text-white transition-all hover:bg-green-600 disabled:cursor-not-allowed disabled:opacity-50"
+                          >
+                            <Check size={18} />
+                            Duyệt Yêu Cầu
+                          </button>
+                          <button
+                            onClick={() => runAction("reject")}
+                            disabled={acting}
+                            className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-red-50 px-4 py-3.5 font-bold uppercase tracking-widest text-red-600 transition-all hover:bg-red-500 hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+                          >
+                            <X size={18} />
+                            Từ chối
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                    {["approved", "shipped_back", "received"].includes(selected.status) && (
+                      <div className="rounded-2xl border border-slate-200 bg-slate-50 p-6">
+                        <div className="mb-6 flex flex-col justify-between gap-4 md:flex-row md:items-center">
+                          <h3 className="text-sm font-bold uppercase tracking-widest text-slate-900">
+                            Bước Tiếp Theo
+                          </h3>
+                          {selected.status !== "received" && (
+                            <button
+                              onClick={() => runAction("received")}
+                              disabled={acting}
+                              className="rounded-lg bg-indigo-100 px-4 py-2 text-xs font-bold uppercase tracking-widest text-indigo-700 transition-all hover:bg-indigo-600 hover:text-white disabled:opacity-50"
+                            >
+                              Đã nhận hàng / Đủ điều kiện
+                            </button>
+                          )}
+                        </div>
+
+                        {selected.orderId?.paymentMethod === "payos" && (
+                          <div className="mb-4 rounded-xl border border-blue-200 bg-blue-50 p-4 text-sm text-blue-800">
+                            <strong>Lưu ý:</strong> Đơn PayOS sẽ được hoàn vào số dư của khách.
+                          </div>
+                        )}
+
+                        <div className="space-y-5">
+                          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                            <div>
+                              <label className="mb-2 block text-xs font-bold uppercase tracking-widest text-slate-600">
+                                Hình thức hoàn tiền
+                              </label>
+                              <select
+                                value={refundMethod}
+                                onChange={(e) => setRefundMethod(e.target.value)}
+                                disabled={selected.orderId?.paymentMethod === "payos"}
+                                className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium outline-none disabled:bg-slate-100 disabled:text-slate-500"
+                              >
+                                {REFUND_METHODS.map((m) => (
+                                  <option key={m.value} value={m.value}>
+                                    {m.label}
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
+                            <div>
+                              <label className="mb-2 block text-xs font-bold uppercase tracking-widest text-slate-600">
+                                Mã giao dịch / Tham chiếu{" "}
+                                {refundMethod === "bank_transfer" && (
+                                  <span className="text-sm text-red-500">*</span>
+                                )}
+                              </label>
+                              <input
+                                value={refundReference}
+                                onChange={(e) => setRefundReference(e.target.value)}
+                                placeholder="VD: FT2310... (Bắt buộc nếu CK)"
+                                className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none transition-all focus:border-slate-400 focus:ring-4 focus:ring-slate-50"
+                              />
+                            </div>
+                          </div>
+
+                          <div>
+                            <label className="mb-2 block text-xs font-bold uppercase tracking-widest text-slate-600">
+                              Ghi chú Admin (Không bắt buộc)
+                            </label>
+                            <textarea
+                              value={adminNote}
+                              onChange={(e) => setAdminNote(e.target.value)}
+                              placeholder="Nhập ghi chú cho lần xử lý này..."
+                              rows={3}
+                              className="w-full resize-none rounded-xl border border-slate-200 bg-white p-4 text-sm outline-none transition-all focus:border-slate-400 focus:ring-4 focus:ring-slate-50"
+                            />
+                          </div>
+
+                          <button
+                            onClick={() => runAction("refunded")}
+                            disabled={acting}
+                            className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 py-4 font-bold uppercase tracking-widest text-white transition-all hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50"
+                          >
+                            {acting ? (
+                              <>
+                                <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
+                                Đang xử lý...
+                              </>
+                            ) : (
+                              <>
+                                <Check size={18} />
+                                Xác nhận Hoàn tiền & Hủy Đơn
+                              </>
+                            )}
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
-        )}
-      </Modal>
+        </div>
+      )}
     </div>
   );
 };
