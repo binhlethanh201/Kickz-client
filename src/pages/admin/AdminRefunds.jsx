@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { Eye, Check, X } from "lucide-react";
 import apiClient from "../../services/apiClient";
 import { SearchInput, toast, Pagination } from "../../components/shared/AdminUI";
@@ -12,13 +12,15 @@ import {
 } from "../../utils/refundUtils";
 
 const AdminRefunds = () => {
+  const { page } = useParams();
   const navigate = useNavigate();
+  const currentPage = page ? parseInt(page, 10) : 1;
+  const itemsPerPage = 6;
+
   const [refunds, setRefunds] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
-  const [page, setPage] = useState(1);
-  const itemsPerPage = 6;
 
   const [selected, setSelected] = useState(null);
   const [detailLoading, setDetailLoading] = useState(false);
@@ -44,8 +46,16 @@ const AdminRefunds = () => {
 
   useEffect(() => {
     fetchRefunds();
-    setPage(1);
+    if (currentPage !== 1) {
+      navigate(`/admin/refunds`);
+    }
   }, [statusFilter]);
+
+  useEffect(() => {
+    if (searchTerm && currentPage !== 1) {
+      navigate(`/admin/refunds`);
+    }
+  }, [searchTerm, navigate, currentPage]);
 
   const openDetail = async (refundId) => {
     setModalOpen(true);
@@ -117,7 +127,11 @@ const AdminRefunds = () => {
   });
 
   const totalPages = Math.ceil(filtered.length / itemsPerPage);
-  const currentData = filtered.slice((page - 1) * itemsPerPage, page * itemsPerPage);
+  const currentData = filtered.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+
+  const handlePageChange = (newPage) => {
+    navigate(`/admin/refunds/page/${newPage}`);
+  };
 
   return (
     <div className="animate-in fade-in min-h-screen bg-slate-50 p-8">
@@ -224,8 +238,14 @@ const AdminRefunds = () => {
             </tbody>
           </table>
         </div>
-        <Pagination currentPage={page} totalPages={totalPages} onPageChange={setPage} />
+
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={handlePageChange}
+        />
       </div>
+
       {modalOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm">
           <div className="animate-in zoom-in-95 max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-3xl bg-white shadow-2xl duration-200">

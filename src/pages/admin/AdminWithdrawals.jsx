@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
+import { useParams, useNavigate } from "react-router-dom";
 import { CreditCard, Check, X as XIcon, Copy, CheckCircle2 } from "lucide-react";
 import { cardService } from "../../services/cardService";
-import { Button, Modal, toast } from "../../components/shared/AdminUI";
+import { Button, Modal, toast, Pagination } from "../../components/shared/AdminUI";
 
 const STATUS_COLORS = {
   pending: "bg-yellow-100 text-yellow-700",
@@ -18,6 +19,11 @@ const STATUS_LABELS = {
 };
 
 const AdminWithdrawals = () => {
+  const { page } = useParams();
+  const navigate = useNavigate();
+  const currentPage = page ? parseInt(page, 10) : 1;
+  const itemsPerPage = 5;
+
   const [withdrawals, setWithdrawals] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("pending");
@@ -42,6 +48,11 @@ const AdminWithdrawals = () => {
   useEffect(() => {
     fetchWithdrawals();
   }, [activeTab]);
+
+  const handleTabChange = (tab) => {
+    setActiveTab(tab);
+    navigate("/admin/withdrawals");
+  };
 
   const handleCopy = (text, id) => {
     navigator.clipboard.writeText(text);
@@ -86,6 +97,16 @@ const AdminWithdrawals = () => {
     }
   };
 
+  const totalPages = Math.ceil(withdrawals.length / itemsPerPage);
+  const currentData = withdrawals.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage,
+  );
+
+  const handlePageChange = (newPage) => {
+    navigate(`/admin/withdrawals/page/${newPage}`);
+  };
+
   return (
     <div className="animate-in fade-in min-h-screen bg-slate-50 p-8">
       <div className="mb-8 flex items-center justify-between">
@@ -98,7 +119,7 @@ const AdminWithdrawals = () => {
         {["pending", "approved", "completed", "rejected"].map((tab) => (
           <button
             key={tab}
-            onClick={() => setActiveTab(tab)}
+            onClick={() => handleTabChange(tab)}
             className={`border-b-2 pb-4 text-sm font-bold uppercase tracking-widest transition-all ${
               activeTab === tab
                 ? "border-slate-900 text-slate-900"
@@ -110,8 +131,8 @@ const AdminWithdrawals = () => {
         ))}
       </div>
 
-      <div className="overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-sm">
-        <div className="overflow-x-auto">
+      <div className="flex flex-col overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-sm">
+        <div className="flex-1 overflow-x-auto">
           <table className="w-full text-left text-sm">
             <thead className="bg-slate-50 text-xs font-bold uppercase tracking-widest text-slate-500">
               <tr>
@@ -132,7 +153,7 @@ const AdminWithdrawals = () => {
                     Đang tải dữ liệu...
                   </td>
                 </tr>
-              ) : withdrawals.length === 0 ? (
+              ) : currentData.length === 0 ? (
                 <tr>
                   <td
                     colSpan="5"
@@ -142,7 +163,7 @@ const AdminWithdrawals = () => {
                   </td>
                 </tr>
               ) : (
-                withdrawals.map((w) => (
+                currentData.map((w) => (
                   <tr key={w._id} className="hover:bg-slate-50">
                     <td className="p-4">
                       <p className="font-bold text-slate-900">
@@ -220,6 +241,11 @@ const AdminWithdrawals = () => {
             </tbody>
           </table>
         </div>
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={handlePageChange}
+        />
       </div>
 
       <Modal

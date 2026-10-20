@@ -13,7 +13,7 @@ import Wishlist from "./pages/Wishlist";
 import Checkout from "./pages/Checkout";
 import Orders from "./pages/Orders";
 import OrderDetail from "./pages/OrderDetail";
-import MyRefunds from "./pages/MyRefunds";
+import MyRefunds from "./pages/Refunds";
 import Search from "./pages/Search";
 import Shop from "./pages/Shop";
 import AdminDashboard from "./pages/admin/AdminDashboard";
@@ -91,6 +91,14 @@ function App() {
             }
           />
           <Route
+            path="/order/page/:page"
+            element={
+              <ProtectedRoute>
+                <Orders />
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/order/:id"
             element={
               <ProtectedRoute>
@@ -100,6 +108,14 @@ function App() {
           />
           <Route
             path="/refunds"
+            element={
+              <ProtectedRoute>
+                <MyRefunds />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/refunds/page/:page"
             element={
               <ProtectedRoute>
                 <MyRefunds />
@@ -132,7 +148,9 @@ function App() {
           <Route path="vouchers" element={<AdminVouchers />} />
           <Route path="vouchers/page/:page" element={<AdminVouchers />} />
           <Route path="refunds" element={<AdminRefunds />} />
+          <Route path="refunds/page/:page" element={<AdminRefunds />} />
           <Route path="withdrawals" element={<AdminWithdrawals />} />
+          <Route path="withdrawals/page/:page" element={<AdminWithdrawals />} />
         </Route>
       </Routes>
     </Router>
