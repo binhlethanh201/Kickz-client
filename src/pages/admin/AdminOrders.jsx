@@ -263,12 +263,20 @@ const AdminOrders = () => {
                       <h3 className="mb-4 text-xs font-bold uppercase tracking-widest text-slate-400">
                         Thông tin khách hàng
                       </h3>
-                      <p className="mb-1 font-bold text-slate-900">
+                      <p className="mb-2 font-bold text-slate-900">
+                        <span className="font-semibold text-slate-900">Họ tên:</span>{" "}
                         {selectedOrder.userId?.firstName} {selectedOrder.userId?.lastName}
                       </p>
-                      <p className="mb-1 text-sm text-slate-600">{selectedOrder.userId?.email}</p>
-                      <p className="mt-4 text-sm text-slate-600">
-                        <span className="font-semibold text-slate-900">Địa chỉ giao:</span>{" "}
+                      <p className="text-m mb-2 text-slate-900">
+                        <span className="font-semibold text-slate-900">Email:</span>{" "}
+                        {selectedOrder.userId?.email}
+                      </p>
+                      <p className="text-m mb-2 text-slate-900">
+                        <span className="font-semibold text-slate-900">Số điện thoại:</span>{" "}
+                        {selectedOrder.phone || selectedOrder.userId?.phone || "Chưa cập nhật"}
+                      </p>
+                      <p className="text-m mb-2 text-slate-900">
+                        <span className="font-semibold text-slate-900">Địa chỉ:</span>{" "}
                         {selectedOrder.address}
                       </p>
                     </div>

@@ -19,6 +19,7 @@ const Checkout = () => {
   const [isUseWallet, setIsUseWallet] = useState(false);
 
   const [checkoutForm, setCheckoutForm] = useState({
+    phone: "",
     address: "",
     shippingMethod: "standard",
     paymentMethod: "cod",
@@ -41,11 +42,29 @@ const Checkout = () => {
           cardService.getMyBalance().catch(() => ({ balance: 0 })),
         ]);
 
+        if (
+          !userData.user.phone ||
+          !userData.user.address ||
+          !userData.user.address.street ||
+          !userData.user.address.city
+        ) {
+          alert(
+            "Bạn cần cập nhật Số điện thoại và Địa chỉ giao hàng trong trang cá nhân trước khi thanh toán!",
+          );
+          navigate("/profile");
+          return;
+        }
+        let fullAddress = "";
         if (userData.user.address) {
           const { street, district, city, country } = userData.user.address;
-          const fullAddress = [street, district, city, country].filter(Boolean).join(", ");
-          setCheckoutForm((prev) => ({ ...prev, address: fullAddress }));
+          fullAddress = [street, district, city, country].filter(Boolean).join(", ");
         }
+
+        setCheckoutForm((prev) => ({
+          ...prev,
+          phone: userData.user.phone || "",
+          address: fullAddress,
+        }));
 
         setWalletBalance(cardData.balance || 0);
       } catch (error) {
@@ -98,6 +117,7 @@ const Checkout = () => {
 
       const payload = {
         selectedItems,
+        phone: checkoutForm.phone,
         address: checkoutForm.address,
         shippingMethod: checkoutForm.shippingMethod,
         paymentMethod: isUseWallet && finalTotal === 0 ? "wallet" : checkoutForm.paymentMethod,
@@ -139,7 +159,7 @@ const Checkout = () => {
             <h2 className="mb-6 border-b border-slate-200 pb-2 text-lg font-bold uppercase tracking-widest text-slate-900">
               Thông tin giao hàng
             </h2>
-            <div>
+            <div className="mb-4">
               <label className="mb-2 block text-xs font-semibold uppercase tracking-widest text-slate-500">
                 Địa chỉ chi tiết
               </label>
@@ -150,6 +170,19 @@ const Checkout = () => {
                 onChange={(e) => setCheckoutForm({ ...checkoutForm, address: e.target.value })}
                 className="w-full rounded-none border-b border-slate-300 bg-transparent py-2 font-medium transition-colors focus:border-slate-900 focus:outline-none"
                 placeholder="Số nhà, Đường, Phường/Xã, Quận/Huyện, Tỉnh/TP"
+              />
+            </div>
+            <div>
+              <label className="mb-2 block text-xs font-semibold uppercase tracking-widest text-slate-500">
+                Số điện thoại
+              </label>
+              <input
+                type="text"
+                required
+                value={checkoutForm.phone}
+                onChange={(e) => setCheckoutForm({ ...checkoutForm, phone: e.target.value })}
+                className="w-full rounded-none border-b border-slate-300 bg-transparent py-2 font-medium transition-colors focus:border-slate-900 focus:outline-none"
+                placeholder="Số điện thoại"
               />
             </div>
           </section>

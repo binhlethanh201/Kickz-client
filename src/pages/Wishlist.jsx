@@ -93,7 +93,7 @@ const Wishlist = () => {
                 >
                   {product.name}
                 </Link>
-                <p className="mb-4 text-sm font-bold text-slate-900">${product.price}</p>
+                <p className="mb-4 text-sm font-bold text-slate-900">{product.price} VND</p>
 
                 <div className="mt-auto pt-2">
                   <button
