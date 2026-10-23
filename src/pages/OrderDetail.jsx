@@ -68,16 +68,16 @@ const OrderDetail = () => {
 
     const confirmed = window.confirm(
       isPaidOrder
-        ? "Hủy đơn hàng này? Đơn đã thanh toán nên hệ thống sẽ tạo yêu cầu hoàn tiền."
-        : "Hủy đơn hàng này? Đơn chưa thanh toán nên hủy trực tiếp, không phát sinh hoàn tiền.",
+        ? "Hủy đơn hàng này? Đơn đã thanh toán nên hệ thống sẽ gửi yêu cầu hoàn tiền trực tiếp đến Admin (Thời gian xử lý: 1-2 ngày)."
+        : "Hủy đơn hàng này? Đơn chưa thanh toán nên sẽ hủy trực tiếp.",
     );
     if (!confirmed) return;
 
     try {
       setIsCancelling(true);
-      const result = await orderService.cancelOrder(order._id);
-      toast.success(result.message || "Đã hủy đơn hàng");
-      setOrder(result.order);
+      const result = await orderService.cancelOrder(order._id, "other");
+      toast.success(result.message || "Đã gửi yêu cầu hủy đơn & hoàn tiền");
+      fetchOrder();
     } catch (error) {
       toast.error(error.response?.data?.message || "Lỗi hủy đơn hàng");
     } finally {
@@ -368,20 +368,22 @@ const OrderDetail = () => {
                 <RefreshCcw size={24} />
               </div>
               <div className="space-y-1 text-sm text-blue-900">
-                <h3 className="font-bold uppercase tracking-widest">Thông tin hoàn tiền</h3>
+                <h3 className="font-bold uppercase tracking-widest">Yêu cầu hoàn tiền đã tạo</h3>
                 <p className="font-medium text-blue-800">
-                  Số tiền:{" "}
+                  Số tiền hoàn dự kiến:{" "}
                   <b className="text-blue-900">
                     {(order.totalPrice + (order.walletUsed || 0)).toLocaleString("vi-VN")} ₫
                   </b>
                 </p>
-                <p className="font-medium text-blue-800">Trạng thái: Đang xử lý hoàn tiền</p>
+                <p className="text-xs text-blue-700">
+                  Admin sẽ xem xét và hoàn tiền trực tiếp vào ví của bạn.
+                </p>
                 <Link
                   to="/refunds"
                   state={{ focusOrderCode: order.orderCode }}
                   className="mt-2 inline-block font-bold text-blue-700 underline hover:text-blue-900"
                 >
-                  Xem chi tiết yêu cầu hoàn tiền &rarr;
+                  Theo dõi tiến trình hoàn tiền &rarr;
                 </Link>
               </div>
             </div>
@@ -401,8 +403,8 @@ const OrderDetail = () => {
 
           {order.status === "pending" && order.paymentMethod === "payos" && (
             <p className="mt-4 text-center text-xs font-medium text-slate-500">
-              * Đơn hàng đang chờ thanh toán qua PayOS. Vui lòng quét mã QR trên ứng dụng ngân hàng
-              để hoàn tất.
+              Đơn hàng đang chờ thanh toán qua PayOS. Vui lòng quét mã QR trên ứng dụng ngân hàng để
+              hoàn tất.
             </p>
           )}
         </div>

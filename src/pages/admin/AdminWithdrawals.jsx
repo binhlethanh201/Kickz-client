@@ -1,14 +1,22 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { CreditCard, Check, X as XIcon, Copy, CheckCircle2 } from "lucide-react";
+import {
+  CreditCard,
+  Check,
+  X as XIcon,
+  Copy,
+  CheckCircle2,
+  User as UserIcon,
+  Building2,
+} from "lucide-react";
 import { cardService } from "../../services/cardService";
 import { Button, Modal, toast, Pagination } from "../../components/shared/AdminUI";
 
 const STATUS_COLORS = {
-  pending: "bg-yellow-100 text-yellow-700",
-  approved: "bg-blue-100 text-blue-700",
-  completed: "bg-green-100 text-green-700",
-  rejected: "bg-red-100 text-red-700",
+  pending: "bg-amber-100 text-amber-700 border border-amber-200",
+  approved: "bg-blue-100 text-blue-700 border border-blue-200",
+  completed: "bg-emerald-100 text-emerald-700 border border-emerald-200",
+  rejected: "bg-red-100 text-red-700 border border-red-200",
 };
 
 const STATUS_LABELS = {
@@ -72,8 +80,7 @@ const AdminWithdrawals = () => {
   };
 
   const handleComplete = async (id) => {
-    if (!window.confirm("Bạn xác nhận ĐÃ CHUYỂN TIỀN THÀNH CÔNG và muốn trừ tiền hệ thống?"))
-      return;
+    if (!window.confirm("Bạn xác nhận ĐÃ CHUYỂN TIỀN THÀNH CÔNG?")) return;
     try {
       await cardService.completeWithdrawal(id);
       toast.success("Giao dịch hoàn tất!");
@@ -109,12 +116,11 @@ const AdminWithdrawals = () => {
 
   return (
     <div className="animate-in fade-in min-h-screen bg-slate-50 p-8">
-      <div className="mb-8 flex items-center justify-between">
+      <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <h1 className="text-3xl font-black uppercase tracking-widest text-slate-900">
           Quản lý Rút tiền
         </h1>
       </div>
-
       <div className="mb-8 flex gap-8 border-b border-slate-200">
         {["pending", "approved", "completed", "rejected"].map((tab) => (
           <button
@@ -130,7 +136,6 @@ const AdminWithdrawals = () => {
           </button>
         ))}
       </div>
-
       <div className="flex flex-col overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-sm">
         <div className="flex-1 overflow-x-auto">
           <table className="w-full text-left text-sm">
@@ -148,7 +153,7 @@ const AdminWithdrawals = () => {
                 <tr>
                   <td
                     colSpan="5"
-                    className="p-8 text-center font-bold uppercase tracking-widest text-slate-400"
+                    className="animate-pulse p-8 text-center font-bold uppercase tracking-widest text-slate-400"
                   >
                     Đang tải dữ liệu...
                   </td>
@@ -164,30 +169,39 @@ const AdminWithdrawals = () => {
                 </tr>
               ) : (
                 currentData.map((w) => (
-                  <tr key={w._id} className="hover:bg-slate-50">
+                  <tr key={w._id} className="transition-colors hover:bg-slate-50">
                     <td className="p-4">
-                      <p className="font-bold text-slate-900">
-                        {w.userId?.firstName} {w.userId?.lastName}
-                      </p>
-                      <p className="text-xs text-slate-500">{w.userId?.email}</p>
+                      <div className="flex items-center gap-4">
+                        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-400">
+                          <UserIcon size={24} />
+                        </div>
+                        <div>
+                          <span className="block font-bold text-slate-900">
+                            {w.userId?.firstName} {w.userId?.lastName}
+                          </span>
+                          <span className="text-xs text-slate-500">{w.userId?.email}</span>
+                        </div>
+                      </div>
                     </td>
-                    <td className="p-4 font-black text-red-500">
-                      {w.amount.toLocaleString("vi-VN")} đ
+                    <td className="p-4 text-base font-black text-red-500">
+                      -{w.amount.toLocaleString("vi-VN")} đ
                     </td>
                     <td className="p-4">
-                      <div className="w-max rounded-lg bg-slate-100 p-3">
-                        <p className="mb-1 text-xs font-bold uppercase text-slate-900">
-                          {w.bankName}
-                        </p>
+                      <div className="w-max rounded-xl border border-slate-200/80 bg-slate-50 p-3.5 shadow-sm">
+                        <div className="mb-1 flex items-center gap-1.5 text-xs font-bold uppercase text-slate-900">
+                          <Building2 size={14} className="text-slate-500" />
+                          <span>{w.bankName}</span>
+                        </div>
                         <div
-                          className="group flex cursor-pointer items-center gap-2"
+                          className="group flex cursor-pointer items-center gap-2 py-0.5"
                           onClick={() => handleCopy(w.accountNumber, w._id)}
+                          title="Bấm để sao chép số tài khoản"
                         >
-                          <p className="font-mono text-lg font-bold tracking-wider text-slate-800">
+                          <p className="font-mono text-base font-black tracking-wider text-slate-900">
                             {w.accountNumber}
                           </p>
                           {copiedId === w._id ? (
-                            <CheckCircle2 size={16} className="text-green-500" />
+                            <CheckCircle2 size={16} className="text-emerald-500" />
                           ) : (
                             <Copy size={14} className="text-slate-400 group-hover:text-slate-900" />
                           )}
@@ -199,7 +213,7 @@ const AdminWithdrawals = () => {
                     </td>
                     <td className="p-4">
                       <span
-                        className={`rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-wider ${STATUS_COLORS[w.status]}`}
+                        className={`inline-flex items-center rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-wider ${STATUS_COLORS[w.status]}`}
                       >
                         {STATUS_LABELS[w.status]}
                       </span>
@@ -210,7 +224,7 @@ const AdminWithdrawals = () => {
                           <>
                             <button
                               onClick={() => handleApprove(w._id)}
-                              className="rounded-lg bg-blue-50 px-3 py-1.5 text-xs font-bold uppercase text-blue-600 transition-colors hover:bg-blue-600 hover:text-white"
+                              className="rounded-xl bg-blue-50 px-3.5 py-2 text-xs font-bold uppercase tracking-wider text-blue-600 transition-colors hover:bg-blue-600 hover:text-white"
                             >
                               Duyệt
                             </button>
@@ -219,7 +233,7 @@ const AdminWithdrawals = () => {
                                 setRejectId(w._id);
                                 setIsRejectModalOpen(true);
                               }}
-                              className="rounded-lg bg-red-50 px-3 py-1.5 text-xs font-bold uppercase text-red-500 transition-colors hover:bg-red-500 hover:text-white"
+                              className="rounded-xl bg-red-50 px-3.5 py-2 text-xs font-bold uppercase tracking-wider text-red-500 transition-colors hover:bg-red-500 hover:text-white"
                             >
                               Từ chối
                             </button>
@@ -228,7 +242,7 @@ const AdminWithdrawals = () => {
                         {w.status === "approved" && (
                           <button
                             onClick={() => handleComplete(w._id)}
-                            className="rounded-lg bg-slate-900 px-4 py-2 text-xs font-bold uppercase text-white shadow-md transition-all hover:bg-slate-800"
+                            className="rounded-xl bg-slate-900 px-4 py-2 text-xs font-bold uppercase tracking-wider text-white shadow-sm transition-all hover:bg-slate-800"
                           >
                             Đã CK - Hoàn tất
                           </button>
@@ -247,23 +261,27 @@ const AdminWithdrawals = () => {
           onPageChange={handlePageChange}
         />
       </div>
-
       <Modal
         isOpen={isRejectModalOpen}
         onClose={() => setIsRejectModalOpen(false)}
         title="Lý do từ chối"
       >
-        <form onSubmit={handleRejectSubmit} className="space-y-4">
-          <textarea
-            required
-            autoFocus
-            value={rejectReason}
-            onChange={(e) => setRejectReason(e.target.value)}
-            placeholder="Nhập lý do từ chối (Sai STK, Ngân hàng bảo trì...)"
-            className="w-full rounded-xl border-2 border-slate-100 bg-slate-50 p-4 text-sm outline-none focus:border-red-500"
-            rows="4"
-          />
-          <div className="flex justify-end gap-3 pt-2">
+        <form onSubmit={handleRejectSubmit} className="space-y-6">
+          <div>
+            <label className="mb-2 block text-xs font-bold uppercase tracking-widest text-slate-500">
+              Mô tả chi tiết *
+            </label>
+            <textarea
+              required
+              autoFocus
+              value={rejectReason}
+              onChange={(e) => setRejectReason(e.target.value)}
+              placeholder="Nhập lý do từ chối (Ví dụ: Sai số tài khoản, Ngân hàng đang bảo trì...)"
+              className="w-full resize-none rounded-xl border-2 border-slate-100 bg-slate-50 p-3 text-sm font-medium outline-none focus:border-red-500 focus:bg-white"
+              rows="4"
+            />
+          </div>
+          <div className="flex justify-end gap-3 border-t border-slate-100 pt-4">
             <Button type="button" variant="secondary" onClick={() => setIsRejectModalOpen(false)}>
               Hủy
             </Button>

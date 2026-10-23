@@ -31,6 +31,16 @@ export const RETURN_CARRIERS = [
   { value: "other", label: "Hãng khác" },
 ];
 
+export const REQUIRES_RETURN_REASONS = ["damaged", "wrong_item", "not_as_described"];
+
+export const requiresReturn = (reason) => REQUIRES_RETURN_REASONS.includes(reason);
+
+export const getRefundTimelineText = (reason) => {
+  return requiresReturn(reason)
+    ? "Xử lý & Hoàn tiền trong 5-7 ngày làm việc (Cần trả hàng)"
+    : "Xử lý & Hoàn tiền trong 1-2 ngày làm việc";
+};
+
 export const canCancelOrder = (order) => {
   return order && order.status === "pending";
 };

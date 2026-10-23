@@ -1,10 +1,24 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate, useParams, useLocation } from "react-router-dom";
-import { ArrowLeft, Package, XCircle, RefreshCcw, ChevronRight, ChevronLeft } from "lucide-react";
+import {
+  ArrowLeft,
+  Package,
+  XCircle,
+  RefreshCcw,
+  ChevronRight,
+  ChevronLeft,
+  Truck,
+} from "lucide-react";
 import { refundService } from "../services/refundService";
-import { getRefundStatusMeta, getRefundReasonLabel, canCancelRefund } from "../utils/refundUtils";
+import {
+  getRefundStatusMeta,
+  getRefundReasonLabel,
+  canCancelRefund,
+  requiresReturn,
+} from "../utils/refundUtils";
 import { RefundStatusBadge } from "../components/refund/RefundRequestModal";
 import { toast } from "../components/shared/AdminUI";
+import ReturnShippingModal from "../components/refund/ReturnShippingModal";
 
 const ACTION_LABELS = {
   requested: "Đã gửi yêu cầu",
@@ -28,6 +42,7 @@ const MyRefunds = () => {
 
   const location = useLocation();
   const focusOrderCode = location.state?.focusOrderCode;
+  const [selectedRefundForShip, setSelectedRefundForShip] = useState(null);
 
   const fetchRefunds = async () => {
     try {
@@ -138,6 +153,8 @@ const MyRefunds = () => {
             {currentData.map((refund) => {
               const meta = getRefundStatusMeta(refund.status);
               const order = refund.orderId || {};
+              const needsReturn = requiresReturn(refund.reason);
+
               return (
                 <div
                   key={refund._id}
@@ -219,28 +236,35 @@ const MyRefunds = () => {
                     </div>
 
                     <div className="flex shrink-0 flex-col items-end gap-3 md:min-w-[200px]">
-                      {refund.status === "approved" && (
-                        <p className="text-right text-xs font-medium text-slate-500">
-                          * Đang chờ chuyển khoản hoàn tiền.
+                      {refund.status === "approved" && needsReturn && (
+                        <button
+                          onClick={() => setSelectedRefundForShip(refund)}
+                          className="group flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 py-3 text-xs font-bold uppercase tracking-widest text-white transition-all hover:bg-blue-700 md:w-auto"
+                        >
+                          <Truck size={16} />
+                          Gửi thông tin hàng trả về
+                        </button>
+                      )}
+                      {refund.status === "approved" && !needsReturn && (
+                        <p className="text-right text-xs font-medium text-blue-600">
+                          ⏳ Đã duyệt. Hệ thống đang tiến hành hoàn tiền vào số dư ví của bạn.
                         </p>
                       )}
+
+                      {refund.status === "shipped_back" && (
+                        <p className="text-right text-xs font-medium text-purple-600">
+                          Đã gửi (Hãng: {refund.returnCarrier?.toUpperCase()}, Mã:{" "}
+                          {refund.returnTrackingCode})
+                        </p>
+                      )}
+
                       {canCancelRefund(refund) && (
                         <button
                           onClick={() => handleCancel(refund._id)}
                           disabled={acting}
                           className="group flex w-full items-center justify-center gap-2 rounded-xl bg-red-50 px-5 py-3 text-xs font-bold uppercase tracking-widest text-red-600 transition-all hover:bg-red-500 hover:text-white disabled:opacity-50 md:w-auto"
                         >
-                          {acting ? (
-                            <span className="animate-pulse">Đang xử lý...</span>
-                          ) : (
-                            <>
-                              <XCircle
-                                size={16}
-                                className="transition-transform group-hover:rotate-90"
-                              />
-                              Hủy yêu cầu
-                            </>
-                          )}
+                          {acting ? "Đang xử lý..." : "Hủy yêu cầu"}
                         </button>
                       )}
                     </div>
@@ -294,6 +318,12 @@ const MyRefunds = () => {
           )}
         </>
       )}
+      <ReturnShippingModal
+        isOpen={!!selectedRefundForShip}
+        refund={selectedRefundForShip}
+        onClose={() => setSelectedRefundForShip(null)}
+        onSuccess={fetchRefunds}
+      />
     </div>
   );
 };
