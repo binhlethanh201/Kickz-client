@@ -11,6 +11,7 @@ import {
   Receipt,
   AlertCircle,
   RefreshCcw,
+  X,
 } from "lucide-react";
 import { orderService } from "../services/orderService";
 import { refundService } from "../services/refundService";
@@ -40,6 +41,8 @@ const OrderDetail = () => {
   const [isCancelling, setIsCancelling] = useState(false);
   const [isRefundModalOpen, setIsRefundModalOpen] = useState(false);
 
+  const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
+
   const fetchOrder = async () => {
     try {
       const data = await orderService.getOrderDetail(id);
@@ -60,23 +63,20 @@ const OrderDetail = () => {
   const isPendingUnpaid = order?.status === "pending" && !order?.paidAt;
   const isCancellable = order && ["pending", "paid"].includes(order.status);
 
-  const handleCancelOrder = async () => {
+  const handleOpenCancelModal = () => {
     if (!isCancellable) {
       toast.error("Không thể hủy đơn hàng ở trạng thái này");
       return;
     }
+    setIsCancelModalOpen(true);
+  };
 
-    const confirmed = window.confirm(
-      isPaidOrder
-        ? "Hủy đơn hàng này? Đơn đã thanh toán nên hệ thống sẽ gửi yêu cầu hoàn tiền trực tiếp đến Admin (Thời gian xử lý: 1-2 ngày)."
-        : "Hủy đơn hàng này? Đơn chưa thanh toán nên sẽ hủy trực tiếp.",
-    );
-    if (!confirmed) return;
-
+  const confirmCancelOrder = async () => {
     try {
       setIsCancelling(true);
       const result = await orderService.cancelOrder(order._id, "other");
       toast.success(result.message || "Đã gửi yêu cầu hủy đơn & hoàn tiền");
+      setIsCancelModalOpen(false);
       fetchOrder();
     } catch (error) {
       toast.error(error.response?.data?.message || "Lỗi hủy đơn hàng");
@@ -286,7 +286,7 @@ const OrderDetail = () => {
           {isPendingUnpaid && (
             <div className="space-y-4">
               <button
-                onClick={handleCancelOrder}
+                onClick={handleOpenCancelModal}
                 disabled={isCancelling}
                 className="flex w-full items-center justify-center gap-2 rounded-2xl bg-red-50 px-4 py-4 text-sm font-bold uppercase tracking-widest text-red-600 transition-all hover:bg-red-500 hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
               >
@@ -305,7 +305,7 @@ const OrderDetail = () => {
           {isCancellable && isPaidOrder && (
             <div className="space-y-4">
               <button
-                onClick={handleCancelOrder}
+                onClick={handleOpenCancelModal}
                 disabled={isCancelling}
                 className="flex w-full items-center justify-center gap-2 rounded-2xl bg-slate-900 px-4 py-4 text-sm font-bold uppercase tracking-widest text-white transition-all hover:bg-slate-800 hover:shadow-xl hover:shadow-slate-900/20 disabled:cursor-not-allowed disabled:opacity-50"
               >
@@ -410,12 +410,99 @@ const OrderDetail = () => {
         </div>
       </div>
 
+      {isCancelModalOpen && (
+        <CancelOrderModal
+          isOpen={isCancelModalOpen}
+          isPaid={isPaidOrder}
+          isCancelling={isCancelling}
+          onClose={() => setIsCancelModalOpen(false)}
+          onConfirm={async (cancelReason) => {
+            try {
+              setIsCancelling(true);
+              const result = await orderService.cancelOrder(order._id, cancelReason || "other");
+              toast.success(result.message || "Đã gửi yêu cầu hủy đơn & hoàn tiền");
+              setIsCancelModalOpen(false);
+              fetchOrder();
+            } catch (error) {
+              toast.error(error.response?.data?.message || "Lỗi hủy đơn hàng");
+            } finally {
+              setIsCancelling(false);
+            }
+          }}
+        />
+      )}
+
       <RefundRequestModal
         isOpen={isRefundModalOpen}
         order={order}
         onClose={() => setIsRefundModalOpen(false)}
         onSubmit={handleRefundSubmit}
       />
+    </div>
+  );
+};
+
+const CancelOrderModal = ({ isOpen, isPaid, isCancelling, onClose, onConfirm }) => {
+  const [reason, setReason] = useState("");
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-900/40 p-4 backdrop-blur-sm transition-all">
+      <div className="animate-in zoom-in-95 fade-in w-full max-w-md overflow-hidden rounded-3xl bg-white shadow-2xl ring-1 ring-slate-100 duration-200">
+        <div className="flex items-center justify-between border-b border-slate-100 bg-slate-50/50 p-6">
+          <h2 className="text-lg font-black uppercase tracking-widest text-slate-900">
+            Xác nhận hủy đơn hàng
+          </h2>
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white text-slate-400 shadow-sm ring-1 ring-slate-200 transition-all hover:bg-slate-900 hover:text-white"
+          >
+            <X size={16} strokeWidth={2.5} />
+          </button>
+        </div>
+        <div className="space-y-4 p-6">
+          <p className="text-sm font-medium leading-relaxed text-slate-600">
+            {isPaid
+              ? "Đơn hàng này đã thanh toán. Khi hủy, hệ thống sẽ tự động tạo yêu cầu hoàn tiền gửi trực tiếp đến Admin (Thời gian xử lý: 1-2 ngày)."
+              : "Đơn hàng này chưa thanh toán. Khi hủy sẽ đóng đơn trực tiếp và không phát sinh hoàn tiền."}
+          </p>
+
+          {isPaid && (
+            <div>
+              <label className="mb-2 block text-xs font-bold uppercase tracking-widest text-slate-600">
+                Lý do / Ghi chú hủy đơn (Không bắt buộc)
+              </label>
+              <textarea
+                value={reason}
+                onChange={(e) => setReason(e.target.value)}
+                rows={3}
+                placeholder="VD: Đặt nhầm sản phẩm, đổi ý muốn mua mẫu khác..."
+                className="w-full resize-none rounded-2xl border border-slate-200 bg-white p-4 text-sm outline-none transition-all focus:border-slate-400 focus:ring-4 focus:ring-slate-50"
+              />
+            </div>
+          )}
+
+          <div className="flex gap-3 pt-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-xs font-bold uppercase tracking-widest text-slate-600 transition-all hover:border-slate-900 hover:text-slate-900"
+            >
+              Đóng
+            </button>
+            <button
+              type="button"
+              disabled={isCancelling}
+              onClick={() => onConfirm(reason)}
+              className="flex-1 rounded-2xl bg-red-600 px-4 py-3 text-xs font-bold uppercase tracking-widest text-white shadow-lg shadow-red-600/20 transition-all hover:bg-red-700 disabled:opacity-50"
+            >
+              {isCancelling ? "Đang xử lý..." : "Xác nhận hủy đơn"}
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };
